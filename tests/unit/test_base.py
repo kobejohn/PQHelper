@@ -1,17 +1,107 @@
 import unittest
 
-from pqhelper.base import Tile
+from pqhelper.base import Board, Tile
+
+
+class Test_Base_Board(unittest.TestCase):
+    # all_swaps --> list of changes representing all swaps on a board
+    # execute_with_chainreactions(changes, destructions) --> total destroyed groups
+    # _execute_once(changes = None, destructions = None) --> total destroyed groups
+    # _apply changes (not groups)
+    # _apply destructions (not groups) --> total destroyed groups
+    # _match
+    # _destroy
+    # _fall
+
+
+
+
+    # Test Parameters
+    _board_string_spec = 'rgby....\n' \
+                         '.xm.....\n' \
+                         '..234567\n' \
+                         '89......\n' \
+                         '.s*.....\n' \
+                         '........\n' \
+                         '........\n' \
+                         '........'
+
+    # Instance creation
+    def test___init___default_is_empty_board(self):
+        b = Board()
+        self.assertTrue(b.is_empty())
+
+    def test___init___with_a_board_string_of_8x8_with_EOLs_works(self):
+        b = Board(self._board_string_spec)
+        self.assertEqual(str(b), self._board_string_spec)
+
+    # Indexing and Shape of grid
+    def test_indexing_works_for_grid_of_8_rows_and_8_columns(self):
+        b = Board()
+        test_tile = Tile('r')
+        for row in range(8):
+            for col in range(8):
+                try:
+                    b[row][col] = test_tile  # test writing
+                    actual_tile = b[row][col]  # test reading
+                except Exception as e:
+                    self.fail('Indexing of row {} and column {} should have '
+                              'worked but an error occured: {}'.format(row, col,
+                                                                       e))
+                self.assertIs(actual_tile, test_tile)
+
+    def test_tuple_indexing_also_works(self):
+        b = Board()
+        test_tile = Tile('r')
+        coordinate_tuple = (2, 2)
+        try:
+            b[coordinate_tuple] = test_tile
+            actual_tile = b[coordinate_tuple]
+        except Exception as e:
+            self.fail('Indexing with the coordinate tuple {} should have '
+                      'worked but an error occured: {}'.format(coordinate_tuple,
+                                                               e))
+        self.assertIs(actual_tile, test_tile)
+
+    def test_indexing_outside_the_8x8_array_raises_IndexError(self):
+        b = Board()
+        bad_coordinate = (8, 7)
+        self.assertRaises(IndexError, b.__getitem__, bad_coordinate)
+
+    # Convenience methods
+    def test_positions_provides_8x8_positions_as_row_column_tuples(self):
+        b = Board()
+        positions_spec = list()
+        for row in range(8):
+            for col in range(8):
+                positions_spec.append((row, col))
+        positions = list(b.positions())
+        self.assertItemsEqual(positions, positions_spec)
+
+    def test_is_empty_is_True_when_all_tiles_are_blanks(self):
+        blank = Tile('.')
+        b = Board()
+        # make sure all positions are blank
+        for position in b.positions():
+            b[position] = blank
+        self.assertTrue(b.is_empty())
+
+    def test_str_returns_8x8_lines_with_EOL_showing_type_for_each_tile(self):
+        b = Board(self._board_string_spec)
+        self.assertEqual(str(b), self._board_string_spec)
 
 
 class Test_Base_Tile(unittest.TestCase):
-    # Parameters
+    # Test Parameters
     _color_types_spec = ('r', 'g', 'b', 'y')
     _wildcard_types_spec = tuple(str(x) for x in range(2, 10))
     _skull_types_spec = ('s', '*')
     _unique_types_spec = ('x', 'm')
     _blank_type_spec = '.'
-    _nonblank_types_spec = _color_types_spec + _wildcard_types_spec +\
-                           _skull_types_spec + _unique_types_spec
+    _nonblank_types_spec = _color_types_spec +\
+                           _wildcard_types_spec +\
+                           _skull_types_spec +\
+                           _unique_types_spec
     _all_types_spec = _nonblank_types_spec + (_blank_type_spec,)
 
     # Class attributes
@@ -182,6 +272,11 @@ class Test_Base_Tile(unittest.TestCase):
     def test_is_color_for_a_non_color_returns_False(self):
         skull = Tile('s')
         self.assertFalse(skull.is_color())
+
+    def test_str_returns_the_type_character(self):
+        for tile_type in self._all_types_spec:
+            tile = Tile(tile_type)
+            self.assertEqual(tile_type, str(tile))
 
 
 if __name__ == '__main__':

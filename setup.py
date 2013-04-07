@@ -4,6 +4,7 @@ setup(
     name='PQHelper',
     version='0.0.0',
     packages=[''],
+    requires=['numpy'],
     url='http://github.com/kobejohn/PQHelper',
     license='MIT',
     author='KobeJohn',
