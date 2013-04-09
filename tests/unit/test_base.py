@@ -10,21 +10,25 @@ class Test_Base_Board(unittest.TestCase):
     # _apply changes (not groups)
     # _apply destructions (not groups) --> total destroyed groups
     # _match
-    # _destroy
-    # _fall
-
-
-
 
     # Test Parameters
-    _board_string_spec = 'rgby....\n' \
-                         '.xm.....\n' \
-                         '..234567\n' \
-                         '89......\n' \
-                         '.s*.....\n' \
-                         '........\n' \
-                         '........\n' \
-                         '........'
+    _board_string_all_tiles = 'rgby....\n' \
+                              '.xm.....\n' \
+                              '..234567\n' \
+                              '89......\n' \
+                              '.s*.....\n' \
+                              '........\n' \
+                              '........\n' \
+                              '........'
+
+    _board_string_chain_reaction = '..*.....\n' \
+                                   '...*....\n' \
+                                   '....*...\n' \
+                                   '.....*..\n' \
+                                   '......*.\n' \
+                                   '.......*\n' \
+                                   '....gb*.\n' \
+                                   '....r*y.'
 
     # Instance creation
     def test___init___default_is_empty_board(self):
@@ -32,8 +36,8 @@ class Test_Base_Board(unittest.TestCase):
         self.assertTrue(b.is_empty())
 
     def test___init___with_a_board_string_of_8x8_with_EOLs_works(self):
-        b = Board(self._board_string_spec)
-        self.assertEqual(str(b), self._board_string_spec)
+        b = Board(self._board_string_all_tiles)
+        self.assertEqual(str(b), self._board_string_all_tiles)
 
     # Indexing and Shape of grid
     def test_indexing_works_for_grid_of_8_rows_and_8_columns(self):
@@ -68,6 +72,91 @@ class Test_Base_Board(unittest.TestCase):
         bad_coordinate = (8, 7)
         self.assertRaises(IndexError, b.__getitem__, bad_coordinate)
 
+    # Execution (core behavior)
+    def test__destroy_empty_target_groups_returns_empty_destroyed_groups(self):
+        b = Board(self._board_string_all_tiles)
+        empty_position_groups = list()
+        destroyed_tile_groups = b._destroy(empty_position_groups)
+        no_destroyed_tile_groups = list()
+        self.assertItemsEqual(destroyed_tile_groups, no_destroyed_tile_groups,
+                              'Expected to find no destroyed tile groups but'
+                              ' got {}'.format(no_destroyed_tile_groups))
+
+    def test__destroy_simple_target_group_returns_same_destroyed_group(self):
+        b = Board(self._board_string_all_tiles)
+        simple_position_group = [(0, 0), (0, 1), (0, 2), (0, 3)]  # top row
+        simple_position_groups = [simple_position_group]
+        destroyed_tile_groups = b._destroy(simple_position_groups)
+        destroyed_tile_group_spec = [Tile('r'), Tile('g'), Tile('b'), Tile('y')]
+        destroyed_tile_groups_spec = [destroyed_tile_group_spec]
+        self.assertItemsEqual(destroyed_tile_groups, destroyed_tile_groups_spec,
+                              'Expected to find these destroyed groups:\n{}'
+                              '\nbut found:'
+                              '{}'.format(destroyed_tile_groups_spec,
+                                          destroyed_tile_groups))
+
+    def test__destroy_simple_target_group_destroys_exactly_targets(self):
+        b = Board(self._board_string_all_tiles)
+        simple_position_group = [(0, 0), (0, 1), (0, 2), (0, 3)]  # top row
+        simple_position_groups = [simple_position_group]
+        # Confirm first that the positions are not empty
+        for position in simple_position_group:
+            self.assertFalse(b[position].is_blank(),
+                             'Expected position {} not to be blank before'
+                             ' destruction but found blank.'.format(position))
+        # Run destroy
+        b._destroy(simple_position_groups)
+        # Confirm after that the positions are now empty
+        for position in simple_position_group:
+            self.assertTrue(b[position].is_blank(),
+                            'Expected position {} to be blank after'
+                            ' destruction but found ({})'.format(position,
+                                                                 b[position]))
+
+    def test__destroy_skullbomb_chain_reaction_returns_tiles_separately(self):
+        board = Board(self._board_string_chain_reaction)
+        mid_chain_position_group = [(5, 7)]  # middle of skullbomb chain
+        mid_chain_position_groups = [mid_chain_position_group]
+        sb, r, g, b, y = Tile('*'), Tile('r'), Tile('g'), Tile('b'), Tile('y')
+        destroyed_tile_groups_spec = [[sb]] * 8 + [[r], [g], [b], [y]]
+        destroyed_tile_groups = board._destroy(mid_chain_position_groups)
+        self.assertItemsEqual(destroyed_tile_groups, destroyed_tile_groups_spec,
+                              'Expected to see all appropriate tiles in'
+                              'separate groups like this:\n{}'
+                              '\nbut found this:'
+                              '\n{}'.format(destroyed_tile_groups_spec,
+                                            destroyed_tile_groups))
+
+    def test__destroy_skullbomb_chain_reaction_destroys_around_skullbombs(self):
+        b = Board(self._board_string_chain_reaction)
+        mid_chain_position_group = [(5, 7)]  # middle of skullbomb chain
+        mid_chain_position_groups = [mid_chain_position_group]
+        b._destroy(mid_chain_position_groups)
+        self.assertTrue(b.is_empty(),
+                        'Expected skullbomb chain reaction to destroy'
+                        ' everything on this board:\n{}\nbut got this'
+                        ' result:\n{}'.format(self._board_string_chain_reaction,
+                                              str(b)))
+
+    def test__fall_moves_tiles_down_as_far_as_possible(self):
+        b = Board(self._board_string_all_tiles)
+        b._fall()
+        _board_string_all_tiles_fallen = '........\n' \
+                                         '........\n' \
+                                         '........\n' \
+                                         '........\n' \
+                                         '.gb.....\n' \
+                                         '.xm.....\n' \
+                                         'r92y....\n' \
+                                         '8s*34567'
+        self.assertEqual(str(b), _board_string_all_tiles_fallen,
+                         'Expected these tiles:\n{}'
+                         '\nto fall to the bottom like this:'
+                         '\n{}\nbut got this:'
+                         '\n{}'.format(self._board_string_all_tiles,
+                                       _board_string_all_tiles_fallen,
+                                       str(b)))
+
     # Convenience methods
     def test_positions_provides_8x8_positions_as_row_column_tuples(self):
         b = Board()
@@ -76,7 +165,10 @@ class Test_Base_Board(unittest.TestCase):
             for col in range(8):
                 positions_spec.append((row, col))
         positions = list(b.positions())
-        self.assertItemsEqual(positions, positions_spec)
+        self.assertItemsEqual(positions, positions_spec,
+                              'Expected to get all possible coordinates in an'
+                              '8x8 grid:\n{}\nbut got'
+                              ' this:\n{}'.format(positions_spec, positions))
 
     def test_is_empty_is_True_when_all_tiles_are_blanks(self):
         blank = Tile('.')
@@ -87,8 +179,8 @@ class Test_Base_Board(unittest.TestCase):
         self.assertTrue(b.is_empty())
 
     def test_str_returns_8x8_lines_with_EOL_showing_type_for_each_tile(self):
-        b = Board(self._board_string_spec)
-        self.assertEqual(str(b), self._board_string_spec)
+        b = Board(self._board_string_all_tiles)
+        self.assertEqual(str(b), self._board_string_all_tiles)
 
 
 class Test_Base_Tile(unittest.TestCase):
@@ -98,15 +190,42 @@ class Test_Base_Tile(unittest.TestCase):
     _skull_types_spec = ('s', '*')
     _unique_types_spec = ('x', 'm')
     _blank_type_spec = '.'
-    _nonblank_types_spec = _color_types_spec +\
-                           _wildcard_types_spec +\
-                           _skull_types_spec +\
-                           _unique_types_spec
+    _nonblank_types_spec = \
+        _color_types_spec +\
+        _wildcard_types_spec +\
+        _skull_types_spec +\
+        _unique_types_spec
     _all_types_spec = _nonblank_types_spec + (_blank_type_spec,)
 
     # Class attributes
     def test_base_valid_tile_types_are_exactly_specified_types(self):
         self.assertItemsEqual(Tile._all_types, self._all_types_spec)
+
+    # Special methods
+    def test_str_returns_the_type_character(self):
+        for tile_type in self._all_types_spec:
+            tile = Tile(tile_type)
+            self.assertEqual(tile_type, str(tile))
+
+    def test___eq___returns_True_for_same_tile_type_only(self):
+        for tile_type in self._all_types_spec:
+            tile = Tile(tile_type)
+            for other_tile_type in self._all_types_spec:
+                other_tile = Tile(other_tile_type)
+                if tile._type == other_tile._type:
+                    self.assertTrue(tile == other_tile)
+                else:
+                    self.assertFalse(tile == other_tile)
+
+    def test___ne___returns_False_for_same_tile_type_only(self):
+        for tile_type in self._all_types_spec:
+            tile = Tile(tile_type)
+            for other_tile_type in self._all_types_spec:
+                other_tile = Tile(other_tile_type)
+                if tile._type == other_tile._type:
+                    self.assertFalse(tile != other_tile)
+                else:
+                    self.assertTrue(tile != other_tile)
 
     # Instance creation
     def test___init___from_all_types_works(self):
@@ -238,7 +357,7 @@ class Test_Base_Tile(unittest.TestCase):
                                  'money should not match other ({0})'
                                  ' but does.'.format(other_type))
 
-    # Convenient type checkers
+    # Convenient methods
     def test_is_skullbomb_for_a_skullbomb_returns_True(self):
         skullbomb = Tile('*')
         self.assertTrue(skullbomb.is_skullbomb())
@@ -272,11 +391,6 @@ class Test_Base_Tile(unittest.TestCase):
     def test_is_color_for_a_non_color_returns_False(self):
         skull = Tile('s')
         self.assertFalse(skull.is_color())
-
-    def test_str_returns_the_type_character(self):
-        for tile_type in self._all_types_spec:
-            tile = Tile(tile_type)
-            self.assertEqual(tile_type, str(tile))
 
 
 if __name__ == '__main__':
