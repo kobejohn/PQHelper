@@ -51,12 +51,6 @@ class Board(object):
                 try_chain_reaction = False
         return bcopy, total_destroyed_tile_groups
 
-    #         >> if anything happened (changes or total destructions):
-    #               repeat (this time initial changes and destructions are empty)
-    #         >> else:
-    #               stop repeating
-    #         >> return (new board, destroyed_groups)  ##### doesn't identify "bad" swaps
-
     def _swap(self, swap):
         """Simulate swapping as in PQ.
 
@@ -86,7 +80,6 @@ class Board(object):
             return
         for position, new_tile in changes:
             self._array[position] = new_tile
-
 
     def _match(self, non_equivalent_positions=None):
         """Find all matches and generate a position group for each match.

@@ -4,8 +4,16 @@ from pqhelper.base import Board, Tile
 
 
 class Test_Base_Board(unittest.TestCase):
+
+
+
+
     # all_swaps --> list of changes representing all swaps on a board
     # (later for spells, helper methods: b.positions_of(tile) --> feedback to change / destructions arguments
+
+
+
+
 
     # Test Parameters
     _board_string_all_tiles = 'rgby....\n' \
