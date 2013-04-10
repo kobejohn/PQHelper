@@ -16,6 +16,154 @@ class Board(object):
                     self._array[row, col] = Tile(tile_character)
 
     # Execution Methods (Core behavior)
+    def execute_with_chain_reactions(self, swap=None):
+        """Execute the board until it is stable.
+
+        Arguments:
+        swap - pair of adjacent positions
+
+
+        Return: (copy of the board, destroyed tile groups)
+        """
+        bcopy = self.copy()  # work with a copy, not self
+        total_destroyed_tile_groups = list()
+        # swap if any
+        bcopy._swap(swap)
+        # initial changes
+        # bcopy._change(changes)
+        # destroy and record initial destructions
+        # destroyed_tile_groups = bcopy._destroy(destructions)
+        # total_destroyed_tile_groups.extend(destroyed_tile_groups)
+        try_chain_reaction = True
+        chain_reaction_length = -1
+        while try_chain_reaction:
+            # look for matches
+            matched_position_groups = bcopy._match()
+            # destroy and record match tiles
+            destroyed_tile_groups = bcopy._destroy(matched_position_groups)
+            total_destroyed_tile_groups.extend(destroyed_tile_groups)
+            bcopy._fall()
+            # try for a chain reaction if first round or any destructions
+            if (chain_reaction_length == -1) or destroyed_tile_groups:
+                chain_reaction_length += 1
+                try_chain_reaction = True
+            else:
+                try_chain_reaction = False
+        return bcopy, total_destroyed_tile_groups
+
+    #         >> if anything happened (changes or total destructions):
+    #               repeat (this time initial changes and destructions are empty)
+    #         >> else:
+    #               stop repeating
+    #         >> return (new board, destroyed_groups)  ##### doesn't identify "bad" swaps
+
+    def _swap(self, swap):
+        """Simulate swapping as in PQ.
+
+        swap should be a sequence of two positions with a square distance of
+        exactly 1.
+
+        Non-adjacent swaps cause a ValueError.
+        """
+        if swap is None:
+            return
+        p1, p2 = swap
+        square_distance = abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+        if square_distance != 1:
+            raise ValueError('Positions unexpectedly not adjacent: square'
+                             ' distance between {} and {} is'
+                             ' {}'.format(p1, p2,
+                                          square_distance))
+        a = self._array
+        a[p1], a[p2] = a[p2], a[p1]
+
+    def _change(self, changes):
+        """Apply the given changes to the board.
+
+        changes: sequence of (position, new tile) pairs or None
+        """
+        if changes is None:
+            return
+        for position, new_tile in changes:
+            self._array[position] = new_tile
+
+
+    def _match(self, non_equivalent_positions=None):
+        """Find all matches and generate a position group for each match.
+
+        non_equivalent_positions should be None (no optimization) or a sequence
+        of positions in which the matching behavior has changed. Then matching
+        can be limited to those rows / columns
+
+        """
+        #optional optimization based on matching changes from the previous board
+        #get all rows and columns that have a non equivalent mark
+        if non_equivalent_positions:
+            rows = [row for row, column in non_equivalent_positions]
+            columns = [column for row, column in non_equivalent_positions]
+            optimized_rows = set(rows)
+            optimized_columns = set(columns)
+        else:
+            #disable optimized matching
+            optimized_rows = None
+            optimized_columns = None
+        for match in self.__match_rows(optimized_rows):
+            #match in rows
+            yield match
+        for match in self.__match_rows(optimized_columns,
+                                       transpose=True):
+            #match in columns and transpose coordinates
+            yield match
+
+    def __match_rows(self, optimized_lines=None, transpose=False):
+        """Main functionality of _match, but works only on rows.
+        Full matches are found by running this once with original board and
+        once with a transposed board.
+
+        Arguments:
+        optimized_lines is an optional argument that identifies the lines
+        that need to be matched.
+
+        transpose indicates whether the match is looking at rows or columns
+
+        """
+        MIN_LENGTH = 3
+        a = self._array
+        if transpose:
+            a = a.T
+        rows = optimized_lines or range(8)
+        # check for matches in each row separately
+        for row in rows:
+            NUM_COLUMNS = 8
+            match_length = 1
+            start_position = 0  # next tile pointer
+            #set next start position as long as a match is still possible
+            while start_position + MIN_LENGTH <= NUM_COLUMNS:
+                group_type = a[row, start_position]
+                # try to increase match length as long as there is room
+                while start_position + match_length + 1 <= NUM_COLUMNS:
+                    next_tile = a[row, start_position + match_length]
+                    # if no match, stop looking for further matches
+                    if not group_type.matches(next_tile):
+                        break
+                    # if group_type is wildcard, try to find a real type
+                    if group_type.is_wildcard():
+                        group_type = next_tile
+                    match_length += 1
+                #produce a matched position group if the current match qualifies
+                if match_length >= MIN_LENGTH and not group_type.is_wildcard():
+                    row_ = row
+                    target_positions = [(row_, col_) for col_
+                                        in range(start_position,
+                                                 start_position + match_length)]
+                    if transpose:
+                        target_positions = [(col_, row_)
+                                            for row_, col_ in target_positions]
+                    yield target_positions
+                #setup for continuing to look for matches after the current one
+                start_position += match_length
+                match_length = 1
+
     def _destroy(self, target_position_groups):
         """Destroy indicated position groups, handle any chain destructions,
         and return all destroyed groups."""
@@ -39,7 +187,7 @@ class Board(object):
                     clear_after_storing.append(target_position)
                     # skull bombs require further destructions
                     if target_tile.is_skullbomb():
-                        new_positions = self._skullbomb_radius(target_position)
+                        new_positions = self.__skullbomb_radius(target_position)
                         # convert individual positions to position groups
                         new_position_groups = [(new_position,) for new_position
                                                in new_positions]
@@ -52,6 +200,18 @@ class Board(object):
             # Replace the completed target position groups with any new ones
             target_position_groups = new_target_position_groups
         return destroyed_tile_groups
+
+    def __skullbomb_radius(self, position):
+        """Generate all valid positions in the square around position."""
+        #get the boundaries of the explosion
+        sb_row, sb_col = position
+        left = max(sb_row - 1, 0)  # standard radius or 0 if out of bounds
+        right = min(sb_row + 1, 7)  # standard radius or 7 if out of bounds
+        top = max(sb_col - 1, 0)
+        bottom = min(sb_col + 1, 7)
+        for explosion_row in xrange(left, right + 1):
+            for explosion_col in xrange(top, bottom + 1):
+                yield (explosion_row, explosion_col)
 
     def _fall(self):
         """Cause tiles to fall down to fill blanks below them."""
@@ -78,18 +238,6 @@ class Board(object):
                         #in any case, move on to the next target position
                 target_p -= 1
 
-    def _skullbomb_radius(self, position):
-        """Generate all valid positions in the square around position."""
-        #get the boundaries of the explosion
-        sb_row, sb_col = position
-        left = max(sb_row - 1, 0)  # standard radius or 0 if out of bounds
-        right = min(sb_row + 1, 7)  # standard radius or 7 if out of bounds
-        top = max(sb_col - 1, 0)
-        bottom = min(sb_col + 1, 7)
-        for explosion_row in xrange(left, right + 1):
-            for explosion_col in xrange(top, bottom + 1):
-                yield (explosion_row, explosion_col)
-
     # Special Methods
     def __str__(self):
         """Represent the board basically as an 8x8 block of characters."""
@@ -97,6 +245,10 @@ class Board(object):
                           for row in self._array])
 
     # Convenience Methods
+    def copy(self):
+        """Generate an independent copy of self."""
+        return Board(str(self))
+
     def positions(self):
         """Generate all positions as a tuple of (row,col)."""
         # if desired, use it[0].item() to reference the content of the cell
