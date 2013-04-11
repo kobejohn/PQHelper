@@ -4,16 +4,9 @@ from pqhelper.base import Board, Tile
 
 
 class Test_Base_Board(unittest.TestCase):
-
-
-
-
+    # todo:
     # all_swaps --> list of changes representing all swaps on a board
     # (later for spells, helper methods: b.positions_of(tile) --> feedback to change / destructions arguments
-
-
-
-
 
     # Test Parameters
     _board_string_all_tiles = 'rgby....\n' \
@@ -88,7 +81,7 @@ class Test_Base_Board(unittest.TestCase):
     # Execution - execute with chain reaction (core behavior)
     def test_execute_with_chain_reactions_returns_a_copy_not_original(self):
         board = Board()
-        return_board, destroyed_tiles = board.execute_with_chain_reactions()
+        return_board, destroyed_tiles = board.execute_until_stable()
         self.assertIsNot(return_board, board,
                          'Expected to receive a copy of board but received'
                          'the same board object instead.')
@@ -104,7 +97,7 @@ class Test_Base_Board(unittest.TestCase):
                        'rs......'
         board = Board(board_string)
         swap = [(7, 0), (7, 1)]
-        result, destroyed_groups = board.execute_with_chain_reactions(swap=swap)
+        result, destroyed_groups = board.execute_until_stable(swap=swap)
         # Combined test for simplicity
         # 1) confirm the effects on the returned board
         result_board_spec = '........\n' \
@@ -135,7 +128,7 @@ class Test_Base_Board(unittest.TestCase):
                        '.....rsr'
         board = Board(board_string)
         swap = [(7, 6), (7, 7)]
-        result, destroyed_groups = board.execute_with_chain_reactions(swap=swap)
+        result, destroyed_groups = board.execute_until_stable(swap=swap)
         # Combined test for simplicity
         # 1) confirm the effects on the returned board
         self.assertTrue(result.is_empty(),
@@ -146,6 +139,45 @@ class Test_Base_Board(unittest.TestCase):
         red = Tile('r')
         destroyed_groups_spec = [[skull, skull, skull],
                                  [red, red, red]]
+        self.assertItemsEqual(destroyed_groups, destroyed_groups_spec)
+
+    def test_execute_with_chain_reactions_simulates_spell_effects(self):
+        board_string = '........\n' \
+                       '........\n' \
+                       '........\n' \
+                       '........\n' \
+                       'x.......\n' \
+                       's.......\n' \
+                       's.......\n' \
+                       'rs......'
+        board = Board(board_string)
+        skull = Tile('s')
+        red = Tile('r')
+        # change the experience to skull --> 1 destroyed group (sss)
+        spell_changes = [[(4, 0), skull]]
+        # instantly destroy the red --> 1 destroyed group (r)
+        spell_destructions = [(7, 0)]
+        result, destroyed_groups = \
+            board.execute_until_stable(spell_changes=spell_changes,
+                                       spell_destructions=spell_destructions)
+        # Combined test for simplicity
+        # 1) confirm the effects on the returned board
+        #remaining result should be just s at (7, 1)
+        result_board_spec = '........\n' \
+                            '........\n' \
+                            '........\n' \
+                            '........\n' \
+                            '........\n' \
+                            '........\n' \
+                            '........\n' \
+                            '.s......'
+        self.assertEqual(str(result), result_board_spec,
+                         'Expected to receive this result:'
+                         '\n{}\nbut received this:'
+                         '\n{}'.format(result_board_spec, result))
+        # 2) confirm the content of the returned groups
+        destroyed_groups_spec = [[skull, skull, skull],
+                                 [red]]
         self.assertItemsEqual(destroyed_groups, destroyed_groups_spec)
 
     # Execution - swap (core behavior)

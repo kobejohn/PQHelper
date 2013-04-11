@@ -16,12 +16,14 @@ class Board(object):
                     self._array[row, col] = Tile(tile_character)
 
     # Execution Methods (Core behavior)
-    def execute_with_chain_reactions(self, swap=None):
+    def execute_until_stable(self, swap=None,
+                             spell_changes=None, spell_destructions=None):
         """Execute the board until it is stable.
 
         Arguments:
         swap - pair of adjacent positions
-
+        spell_changes - sequence of (position, tile) changes
+        spell_destructions - sequence of positions to be destroyed
 
         Return: (copy of the board, destroyed tile groups)
         """
@@ -29,11 +31,14 @@ class Board(object):
         total_destroyed_tile_groups = list()
         # swap if any
         bcopy._swap(swap)
-        # initial changes
-        # bcopy._change(changes)
-        # destroy and record initial destructions
-        # destroyed_tile_groups = bcopy._destroy(destructions)
-        # total_destroyed_tile_groups.extend(destroyed_tile_groups)
+        # spell changes if any
+        bcopy._change(spell_changes)
+        # spell destructions if any (first convert simple positions to groups)
+        spell_destructions = spell_destructions or tuple()
+        destruction_groups = [[p] for p in spell_destructions]
+        destroyed_tile_groups = bcopy._destroy(destruction_groups)
+        total_destroyed_tile_groups.extend(destroyed_tile_groups)
+        # execute one time and then any chain reactions until stable
         try_chain_reaction = True
         chain_reaction_length = -1
         while try_chain_reaction:
