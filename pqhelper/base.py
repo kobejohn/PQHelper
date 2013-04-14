@@ -243,6 +243,70 @@ class Board(object):
                           for row in self._array])
 
     # Convenience Methods
+    def potential_swaps(self):
+        """Generate a sequence of at least all valid swaps for this board.
+
+        The built-in optimizer filters out many meaningless swaps, but not all.
+        """
+        a = self._array
+        rows, cols = a.shape
+        for this_position in self.positions():
+            #produce horizontal swap for this position
+            r, c = this_position
+            if c < cols - 1:
+                other_position = (r, c + 1)
+                if self._swap_optimizer_allows(this_position, other_position):
+                    yield (this_position, other_position)
+            #produce vertical swap for this position. not DRY but meh.
+            if r < rows - 1:
+                other_position = (r + 1, c)
+                if self._swap_optimizer_allows(this_position, other_position):
+                    yield (this_position, other_position)
+
+    def _swap_optimizer_allows(self, p1, p2):
+        """Identify easily discarded meaningless swaps.
+
+        This is motivated by the cost of millions of swaps being simulated.
+        """
+        # setup local shortcuts
+        a = self._array
+        tile1 = a[p1]
+        tile2 = a[p2]
+        # 1) disallow same tiles
+        if tile1 == tile2:
+            return False
+        # 2) disallow matches unless a wildcard is involved
+        if tile1.matches(tile2) and not any(t.is_wildcard()
+                                            for t in (tile1, tile2)):
+            return False
+        # 3) disallow when both tiles (post-swap) are surrounded by non-matches
+        center_other_pairs = ((p1, p2), (p2, p1))
+
+        class MatchedTiles(Exception):
+            pass
+        try:
+            for center_p, other_p in center_other_pairs:
+                up_down_left_right = ((center_p[0] - 1, center_p[1]),
+                                      (center_p[0] + 1, center_p[1]),
+                                      (center_p[0],     center_p[1] - 1),
+                                      (center_p[0],     center_p[1] + 1))
+                post_swap_center_tile = a[other_p]
+                for surrounding_p in up_down_left_right:
+                    # ignore out of bounds positions
+                    # and ignore the inner swap which is handled elsewhere
+                    if any((not (0 <= surrounding_p[0] <= 7),  # out of bounds
+                            not (0 <= surrounding_p[1] <= 7),  # out of bounds
+                            surrounding_p == other_p)):  # inner swap
+                        continue
+                    surrounding_tile = a[surrounding_p]
+                    if post_swap_center_tile.matches(surrounding_tile):
+                        raise MatchedTiles()
+        except MatchedTiles:
+            pass  # if any match found, stop checking and pass this filter
+        else:
+            return False  # if no match is found, then this can be filtered
+        return True  # return True if it couldn't be filtered
+
     def copy(self):
         """Generate an independent copy of self."""
         return Board(str(self))

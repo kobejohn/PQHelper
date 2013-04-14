@@ -4,10 +4,6 @@ from pqhelper.base import Board, Tile
 
 
 class Test_Base_Board(unittest.TestCase):
-    # todo:
-    # all_swaps --> list of changes representing all swaps on a board
-    # (later for spells, helper methods: b.positions_of(tile) --> feedback to change / destructions arguments
-
     # Test Parameters
     _board_string_all_tiles = 'rgby....\n' \
                               '.xm.....\n' \
@@ -424,6 +420,55 @@ class Test_Base_Board(unittest.TestCase):
                                        str(board)))
 
     # Convenience methods
+    def test_potential_swaps_returns_at_least_all_valid_swaps(self):
+        board_string_two_valid_swaps = '........\n' \
+                                       '........\n' \
+                                       '........\n' \
+                                       '........\n' \
+                                       '........\n' \
+                                       '........\n' \
+                                       '....y...\n' \
+                                       'rr.rgyy.'
+        board = Board(board_string_two_valid_swaps)
+        potential_swaps = list(board.potential_swaps())
+        print len(potential_swaps)
+        valid_swaps_spec = [((7, 2), (7, 3)),
+                            ((6, 4), (7, 4))]
+        for valid_swap_spec in valid_swaps_spec:
+            self.assertIn(valid_swap_spec, potential_swaps,
+                          'Expected to find this valid swap:\n{}'
+                          '\nin the potential swaps result:\n{}'
+                          '\nfor this board:\n{}'
+                          '\nbut did not.'.format(valid_swap_spec,
+                                                  potential_swaps,
+                                                  board))
+
+    def test_potential_swaps_ignores_blatantly_obvious_bad_swaps(self):
+        # Combined test to keep specification compact
+        # rr: same tiles
+        board_string_bad_swaps = 'rr......\n' \
+                                 '........\n' \
+                                 's*......\n' \
+                                 '........\n' \
+                                 '........\n' \
+                                 '....x...\n' \
+                                 '...sgm..\n' \
+                                 '....x...'
+        # list of all the bad swaps that should not appear:
+        bad_swaps_spec = [((0, 0), (0, 1)),  # rr: same tiles
+                          ((2, 0), (2, 1)),  # s*: matching and no wildcard
+                          ((6, 3), (6, 4))   # sg: surrounded by non-matches
+                          ]
+        board = Board(board_string_bad_swaps)
+        potential_swaps = list(board.potential_swaps())
+        for bad_swap_spec in bad_swaps_spec:
+            self.assertNotIn(bad_swap_spec, potential_swaps,
+                             'Unexpectedly found this bad swap:'
+                             '\n{}\nin the list of potential swaps:'
+                             '\n{}\nfor this board:'
+                             '\n{}'.format(bad_swap_spec, potential_swaps,
+                                           board))
+
     def test_copy_returns_a_board_with_a_different_underlying_array(self):
         b1 = Board()
         b2 = b1.copy()
