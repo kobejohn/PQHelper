@@ -1,5 +1,7 @@
 import unittest
 
+from mock import patch
+
 from pqhelper.base import Board, Tile
 
 
@@ -82,7 +84,9 @@ class Test_Base_Board(unittest.TestCase):
                          'Expected to receive a copy of board but received'
                          'the same board object instead.')
 
-    def test_execute_with_chain_reactions_simulates_simple_swap_results(self):
+    @patch.object(Tile, 'random_tile')
+    def test_execute_with_chain_reactions_simulates_swap(self, mock_random):
+        mock_random.return_value = Tile('.')  # always return blank
         board_string = '........\n' \
                        '........\n' \
                        '........\n' \
@@ -113,7 +117,9 @@ class Test_Base_Board(unittest.TestCase):
         destroyed_groups_spec = [[skull, skull, skull]]
         self.assertItemsEqual(destroyed_groups, destroyed_groups_spec)
 
-    def test_execute_with_chain_reactions_simulates_chain_swap_results(self):
+    @patch.object(Tile, 'random_tile')
+    def test_execute_with_chain_reactions_simulates_chains(self, mock_random):
+        mock_random.return_value = Tile('.')  # always return blank
         board_string = '........\n' \
                        '........\n' \
                        '........\n' \
@@ -137,7 +143,9 @@ class Test_Base_Board(unittest.TestCase):
                                  [red, red, red]]
         self.assertItemsEqual(destroyed_groups, destroyed_groups_spec)
 
-    def test_execute_with_chain_reactions_simulates_spell_effects(self):
+    @patch.object(Tile, 'random_tile')
+    def test_execute_with_chain_reactions_simulates_spells(self, mock_random):
+        mock_random.return_value = Tile('.')  # always return blank
         board_string = '........\n' \
                        '........\n' \
                        '........\n' \
@@ -419,6 +427,30 @@ class Test_Base_Board(unittest.TestCase):
                                        _board_string_all_tiles_fallen,
                                        str(board)))
 
+    # Execution - random_fill (core behavior)
+    def test__random_fill_fills_an_empty_board(self):
+        board = Board()
+        if not board.is_empty():
+            self.fail('Expected the starting board to be empty for testing but'
+                      ' got this board:\n{}'.format(board))
+        board._random_fill()
+        for p in board.positions():
+            self.assertFalse(board[p].is_blank())
+
+    def test_existing_tiles_remain_after_random_fill(self):
+        #prepare some positioned tiles
+        tiles_with_position = ((Tile('r'), (7, 0)),
+                               (Tile('g'), (6, 2)),
+                               (Tile('b'), (7, 2)))
+        #prepare the board
+        board = Board()
+        for tile, position in tiles_with_position:
+            board[position] = tile
+        #confirm existing tiles after random fill
+        board._random_fill()
+        for correct_tile, position in tiles_with_position:
+            self.assertEqual(board[position], correct_tile)
+
     # Convenience methods
     def test_potential_swaps_returns_at_least_all_valid_swaps(self):
         board_string_two_valid_swaps = '........\n' \
@@ -674,6 +706,22 @@ class Test_Base_Tile(unittest.TestCase):
                 self.assertFalse(money.matches(other),
                                  'money should not match other ({0})'
                                  ' but does.'.format(other_type))
+
+    # Random Tiles
+    def test_random_tile_provides_a_random_tile_according_to_distribution(self):
+        n = 10000  # size of sample for checking distribution
+        tolerance = 0.05  # i.e. 1% error tolerance
+        delta = round(n * tolerance)
+        weights = Tile._random_weights
+        total_weight = sum(weights.values())
+        counts_spec = {tile_type: float(n * weights[tile_type]) / total_weight
+                       for tile_type in weights.keys()}
+        counts = {tile_type: 0 for tile_type in weights.keys()}
+        for i in range(n):
+            counts[Tile.random_tile()._type] += 1
+        for tile_type, tile_count in counts.items():
+            tile_count_spec = counts_spec[tile_type]
+            self.assertAlmostEqual(tile_count, tile_count_spec, delta=delta)
 
     # Convenient methods
     def test_is_skullbomb_for_a_skullbomb_returns_True(self):

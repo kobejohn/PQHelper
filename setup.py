@@ -5,6 +5,7 @@ setup(
     version='0.0.0',
     packages=[''],
     requires=['numpy'],
+    tests_require=['mock'],
     url='http://github.com/kobejohn/PQHelper',
     license='MIT',
     author='KobeJohn',

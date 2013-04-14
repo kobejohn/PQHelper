@@ -1,3 +1,5 @@
+import random
+
 import numpy
 
 
@@ -48,6 +50,7 @@ class Board(object):
             destroyed_tile_groups = bcopy._destroy(matched_position_groups)
             total_destroyed_tile_groups.extend(destroyed_tile_groups)
             bcopy._fall()
+            bcopy._random_fill()
             # try for a chain reaction if first round or any destructions
             if (chain_reaction_length == -1) or destroyed_tile_groups:
                 chain_reaction_length += 1
@@ -236,6 +239,13 @@ class Board(object):
                         #in any case, move on to the next target position
                 target_p -= 1
 
+    def _random_fill(self):
+        """Fill the board with random tiles based on the Tile class."""
+        a = self._array
+        for position in self.positions():
+            if a[position].is_blank():
+                a[position] = Tile.random_tile()
+
     # Special Methods
     def __str__(self):
         """Represent the board basically as an 8x8 block of characters."""
@@ -361,6 +371,17 @@ class Tile(object):
                       '2', '3', '4', '5', '6', '7', '8', '9'),
                 '9': ('r', 'g', 'b', 'y',
                       '2', '3', '4', '5', '6', '7', '8', '9')}
+    _random_weights = {'r': 2,
+                       'g': 2,
+                       'b': 2,
+                       'y': 2,
+                       's': 2,
+                       '*': 1,  # i.e. skullbomb half as likely as others
+                       'x': 2,
+                       'm': 2}
+    _random_distribution = list()
+    for tile_type, weight in _random_weights.items():
+        _random_distribution += (tile_type,) * weight
 
     def __init__(self, type_character):
         if type_character in self._all_types:
@@ -374,6 +395,13 @@ class Tile(object):
     def matches(self, other):
         """Return True for tiles that would match in PQ and False otherwise."""
         return other._type in self._matches[self._type]
+
+    # Random tile
+    @classmethod
+    def random_tile(cls):
+        """Return a random tile based on _random_weights distribution."""
+        random_type = random.choice(cls._random_distribution)
+        return cls(random_type)
 
     # Special methods
     def __str__(self):
