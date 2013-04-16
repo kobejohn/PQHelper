@@ -18,9 +18,9 @@ class Board(object):
                     self._array[row, col] = Tile(tile_character)
 
     # Execution Methods (Core behavior)
-    def execute_until_stable(self, swap=None,
-                             spell_changes=None, spell_destructions=None):
-        """Execute the board until it is stable.
+    def execute_once(self, swap=None,
+                     spell_changes=None, spell_destructions=None):
+        """Execute the board only one time. Do not execute chain reactions.
 
         Arguments:
         swap - pair of adjacent positions
@@ -35,28 +35,20 @@ class Board(object):
         bcopy._swap(swap)
         # spell changes if any
         bcopy._change(spell_changes)
-        # spell destructions if any (first convert simple positions to groups)
+        # spell destructions and record if any
+        # first convert simple positions to groups
         spell_destructions = spell_destructions or tuple()
         destruction_groups = [[p] for p in spell_destructions]
         destroyed_tile_groups = bcopy._destroy(destruction_groups)
         total_destroyed_tile_groups.extend(destroyed_tile_groups)
-        # execute one time and then any chain reactions until stable
-        try_chain_reaction = True
-        chain_reaction_length = -1
-        while try_chain_reaction:
-            # look for matches
-            matched_position_groups = bcopy._match()
-            # destroy and record match tiles
-            destroyed_tile_groups = bcopy._destroy(matched_position_groups)
-            total_destroyed_tile_groups.extend(destroyed_tile_groups)
-            bcopy._fall()
-            bcopy._random_fill()
-            # try for a chain reaction if first round or any destructions
-            if (chain_reaction_length == -1) or destroyed_tile_groups:
-                chain_reaction_length += 1
-                try_chain_reaction = True
-            else:
-                try_chain_reaction = False
+        # execute one time only
+        # look for matched groups
+        matched_position_groups = bcopy._match()
+        # destroy and record matched groups
+        destroyed_tile_groups = bcopy._destroy(matched_position_groups)
+        total_destroyed_tile_groups.extend(destroyed_tile_groups)
+        bcopy._fall()
+        bcopy._random_fill()
         return bcopy, total_destroyed_tile_groups
 
     def _swap(self, swap):

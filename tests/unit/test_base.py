@@ -76,16 +76,16 @@ class Test_Base_Board(unittest.TestCase):
         bad_coordinate = (8, 7)
         self.assertRaises(IndexError, board.__getitem__, bad_coordinate)
 
-    # Execution - execute with chain reaction (core behavior)
-    def test_execute_with_chain_reactions_returns_a_copy_not_original(self):
+    # Execution - execute_once (core behavior)
+    def test_execute_once_returns_a_copy_not_original(self):
         board = Board()
-        return_board, destroyed_tiles = board.execute_until_stable()
+        return_board, destroyed_tiles = board.execute_once()
         self.assertIsNot(return_board, board,
                          'Expected to receive a copy of board but received'
                          'the same board object instead.')
 
     @patch.object(Tile, 'random_tile')
-    def test_execute_with_chain_reactions_simulates_swap(self, mock_random):
+    def test_execute_once_simulates_swap(self, mock_random):
         mock_random.return_value = Tile('.')  # always return blank
         board_string = '........\n' \
                        '........\n' \
@@ -97,8 +97,8 @@ class Test_Base_Board(unittest.TestCase):
                        'rs......'
         board = Board(board_string)
         swap = [(7, 0), (7, 1)]
-        result, destroyed_groups = board.execute_until_stable(swap=swap)
-        # Combined test for simplicity
+        result, destroyed_groups = board.execute_once(swap=swap)
+        # Combined test for clarity
         # 1) confirm the effects on the returned board
         result_board_spec = '........\n' \
                             '........\n' \
@@ -118,7 +118,7 @@ class Test_Base_Board(unittest.TestCase):
         self.assertItemsEqual(destroyed_groups, destroyed_groups_spec)
 
     @patch.object(Tile, 'random_tile')
-    def test_execute_with_chain_reactions_simulates_chains(self, mock_random):
+    def test_execute_once_does_not_execute_chain_reactions(self, mock_random):
         mock_random.return_value = Tile('.')  # always return blank
         board_string = '........\n' \
                        '........\n' \
@@ -130,21 +130,34 @@ class Test_Base_Board(unittest.TestCase):
                        '.....rsr'
         board = Board(board_string)
         swap = [(7, 6), (7, 7)]
-        result, destroyed_groups = board.execute_until_stable(swap=swap)
+        result, destroyed_groups = board.execute_once(swap=swap)
         # Combined test for simplicity
         # 1) confirm the effects on the returned board
-        self.assertTrue(result.is_empty(),
-                        'Expected to receive a blank board after chain'
-                        ' reaction but received this:\n{}'.format(result))
+        result_spec = '........\n' \
+                      '........\n' \
+                      '........\n' \
+                      '........\n' \
+                      '........\n' \
+                      '........\n' \
+                      '........\n' \
+                      '.....rrr'
+        self.assertEqual(str(result), result_spec,
+                         'Expected execution of the swap on this board\n{}\n'
+                         'to result in this board\n{}\n'
+                         'but received this\n{}'
+                         ''.format(board, result_spec, result))
         # 2) confirm the content of the returned groups
         skull = Tile('s')
-        red = Tile('r')
-        destroyed_groups_spec = [[skull, skull, skull],
-                                 [red, red, red]]
-        self.assertItemsEqual(destroyed_groups, destroyed_groups_spec)
+        destroyed_groups_spec = [[skull, skull, skull]]
+        self.assertItemsEqual(destroyed_groups, destroyed_groups_spec,
+                              'Expected execution of this board\n{}\n'
+                              'to result in these destructions\n{}\n'
+                              'but received this\n{}'
+                              ''.format(board, destroyed_groups_spec,
+                                        destroyed_groups))
 
     @patch.object(Tile, 'random_tile')
-    def test_execute_with_chain_reactions_simulates_spells(self, mock_random):
+    def test_execute_once_simulates_spells(self, mock_random):
         mock_random.return_value = Tile('.')  # always return blank
         board_string = '........\n' \
                        '........\n' \
@@ -162,8 +175,8 @@ class Test_Base_Board(unittest.TestCase):
         # instantly destroy the red --> 1 destroyed group (r)
         spell_destructions = [(7, 0)]
         result, destroyed_groups = \
-            board.execute_until_stable(spell_changes=spell_changes,
-                                       spell_destructions=spell_destructions)
+            board.execute_once(spell_changes=spell_changes,
+                               spell_destructions=spell_destructions)
         # Combined test for simplicity
         # 1) confirm the effects on the returned board
         #remaining result should be just s at (7, 1)
@@ -463,7 +476,6 @@ class Test_Base_Board(unittest.TestCase):
                                        'rr.rgyy.'
         board = Board(board_string_two_valid_swaps)
         potential_swaps = list(board.potential_swaps())
-        print len(potential_swaps)
         valid_swaps_spec = [((7, 2), (7, 3)),
                             ((6, 4), (7, 4))]
         for valid_swap_spec in valid_swaps_spec:
@@ -592,6 +604,11 @@ class Test_Base_Tile(unittest.TestCase):
                         'Specification is using a valid character to test'
                         'invalid characters. Please fix the spec.')
         self.assertRaises(ValueError, Tile, inall_type)
+
+    def test___new___produces_singletons_to_avoid_creating_millions(self):
+        red_1 = Tile('r')
+        red_2 = Tile('r')
+        self.assertIs(red_1, red_2)
 
     # Matching
     def test_matches_for_blank_is_False_for_all_types_including_blank(self):
