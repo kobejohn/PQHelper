@@ -1,6 +1,7 @@
 import unittest
 
-from pqhelper.base import State, _Transition, Swap, ChainReaction, EOT
+from pqhelper.base import State
+from pqhelper.base import _Transition, Swap, ChainReaction, EOT, ManaDrain
 from pqhelper.base import Board, Tile
 
 
@@ -222,6 +223,32 @@ class Test_Base_State(unittest.TestCase):
         parent_id_spec = id(transition)
         self.assertEqual(parent_id, parent_id_spec)
 
+    # Special methods
+    def test___str___shows_the_core_data_of_state_and_number_of_children(self):
+        board_string_spec = self._board_string_two_paths
+        board = Board(board_string_spec)
+        turn = 2
+        actions_remaining = 3
+        state = State(board=board, turn=turn,
+                      actions_remaining=actions_remaining)
+        transition_1 = _Transition()
+        transition_2 = _Transition()
+        state.attach(transition_1)
+        state.attach(transition_2)
+        state_string = str(state)
+        # confirm board
+        for line in board_string_spec.splitlines():
+            self.assertIn(line, state_string)
+        # confirm turn
+        turn_string_spec = '{} : turn'.format(turn)
+        self.assertIn(turn_string_spec, state_string)
+        # confirm actions remaining
+        ar_string_spec = '{} : actions remaining'.format(actions_remaining)
+        self.assertIn(ar_string_spec, state_string)
+        # confirm number of children
+        children_string_spec = '{} : children'.format(2)
+        self.assertIn(children_string_spec, state_string)
+
     def produce_fake_simulation(self):
         """Produce a fake simulation.
 
@@ -314,7 +341,11 @@ class Test_Transitions(unittest.TestCase):
 
     def test_EOT_type_name_is_eot(self):
         eot = EOT()
-        self.assertEqual(eot.type, 'eot')
+        self.assertEqual(eot.type, 'end of turn')
+
+    def test_ManaDrain_type_name_is_mana_drain(self):
+        manadrain = ManaDrain()
+        self.assertEqual(manadrain.type, 'mana drain')
 
 
 class Test_Base_Board(unittest.TestCase):

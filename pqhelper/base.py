@@ -61,7 +61,7 @@ class State(object):
 
     def children(self):
         """Return a tuple copy of the children in self."""
-        return (child.main for child in self._node.children)
+        return tuple(child.main for child in self._node.children)
 
     @property
     def parent(self):
@@ -95,17 +95,21 @@ class State(object):
         # start with a set of qualifying leaves in the tree rooted at self
         leaves_within_depth = list(self._leaves_within_depth(absolute_turn_depth))
         for leaf in leaves_within_depth:
+
+            print 'start leaf: '
+
+
             # decide how to handle the current set of qualifying leaves
             # -------------------------------------------------------------
             if leaf.type == 'state':
                 states.append(leaf)
             elif leaf.type == 'end of turn':
                 eots.append(leaf)
-            elif leaf.type == 'manadrain':
+            elif leaf.type == 'mana drain':
                 continue  # special case: ignore manadrain
             else:
                 raise ValueError('Unexpectedly found a leaf that is not an'
-                                 ' "end of turn" and not a state:\n{}'
+                                 ' end of turn and not a state:\n{}'
                                  ''.format(leaf))
             # -------------------------------------------------------------
             # continue simulating until everything within turn limit is done
@@ -117,58 +121,58 @@ class State(object):
                                            turn=eot.parent.turn + 1,
                                            actions_remaining=1)
                     states.append(new_turn_state)
+                    continue  # done with this state
                 except IndexError:
                     pass
+                # get and qualify state to work on
                 state = states.pop()
+                if state.turn > absolute_turn_depth:
+                    continue  # ignore this state
                 # # # # # # # # # todo: Start atomic change. rollback if error
                 # handle EOT states
                 if state.actions_remaining <= 0:
                     new_eot = EOT()
                     state.attach(new_eot)
-                    # simulate more if within depth
-                    if state.turn + 1 <= absolute_turn_depth:
-                        eots.append(new_eot)
+                    eots.append(new_eot)
                     yield new_eot
                     continue  # no further simulation for this state
                 # handle swaps
-                for swap in state.board.potential_swaps():
-                    result_board, destroyed_groups = state.board.execute_once(swap=swap,
+                for swap_pair in state.board.potential_swaps():
+                    result_board, destroyed_groups = state.board.execute_once(swap=swap_pair,
                                                                               random_fill=random_fill)
                     # finish this swap if it was invalid
                     if not destroyed_groups:
                         continue
-                    else:
+                    # attach the transition
+                    swap = Swap(swap_pair)
+                    state.attach(swap)
+                    # attach the result state
+                    bonus_action = any(len(group) >= 4
+                                       for group in destroyed_groups)
+                    result_state = State(board=result_board,
+                                         turn=state.turn,
+                                         actions_remaining=state.actions_remaining - 1 + bonus_action)
+                    swap.attach(result_state)
+                    # handle any chain reactions
+                    potential_chain_reaction = result_state
+                    while potential_chain_reaction:
+                        result_board, destroyed_groups = potential_chain_reaction.board.execute_once(random_fill=random_fill)
+                        # finish this chain reaction if it was invalid
+                        if not destroyed_groups:
+                            states.append(potential_chain_reaction)
+                            break
                         # attach the transition
-                        transition = Swap(swap)
-                        state.attach(transition)
+                        chain = ChainReaction()
+                        potential_chain_reaction.attach(chain)
                         # attach the result state
                         bonus_action = any(len(group) >= 4
                                            for group in destroyed_groups)
                         result_state = State(board=result_board,
-                                             turn=state.turn,
-                                             actions_remaining=state.actions_remaining - 1 + bonus_action)
-                        transition.attach(result_state)
-                        # handle any chain reactions
+                                             turn=potential_chain_reaction.turn,
+                                             actions_remaining=potential_chain_reaction.actions_remaining + bonus_action)
+                        swap.attach(result_state)
+                        # prepare to try for another chain reaction
                         potential_chain_reaction = result_state
-                        while potential_chain_reaction:
-                            result_board, destroyed_groups = potential_chain_reaction.board.execute_once(random_fill=random_fill)
-                            # finish this chain reaction if it was invalid
-                            if not destroyed_groups:
-                                states.append(potential_chain_reaction)
-                                break
-                            else:
-                                # attach the transition
-                                transition = ChainReaction()
-                                potential_chain_reaction.attach(transition)
-                                # attach the result state
-                                bonus_action = any(len(group) >= 4
-                                                   for group in destroyed_groups)
-                                result_state = State(board=result_board,
-                                                     turn=potential_chain_reaction.turn,
-                                                     actions_remaining=state.actions_remaining + bonus_action)
-                                transition.attach(result_state)
-                                # prepare to try for another chain reaction
-                                potential_chain_reaction = result_state
                 #at this point all swaps have been tried
                 #if nothing was valid, it's a manadrain
                 if not tuple(state.children()):
@@ -179,6 +183,23 @@ class State(object):
                 # handle spells
                 pass
                 # # # # # # # # #todo:      End atomic change
+
+    # Special methods
+    def __str__(self):
+        indent = '    '
+        line_list = list()
+        line_list.append('State:')
+        line_list.append(indent + '{} : turn'.format(self.turn))
+        line_list.append(indent + '{} : actions remaining'
+                         ''.format(self.actions_remaining))
+        line_list.append(indent + '{} : children'.format(len(self.children())))
+        line_list.append(indent + 'board:')
+        line_list.extend(indent + indent + line for line
+                         in str(self.board).splitlines())
+        return '\n    '.join(line_list)
+
+    def __repr__(self):
+        return str(self)
 
 
 class _Transition(object):
@@ -223,12 +244,12 @@ class ChainReaction(_Transition):
 
 class EOT(_Transition):
     def __init__(self):
-        super(EOT, self).__init__('eot')
+        super(EOT, self).__init__('end of turn')
 
 
 class ManaDrain(_Transition):
     def __init__(self):
-        super(ManaDrain, self).__init__('manadrain')
+        super(ManaDrain, self).__init__('mana drain')
 
 
 class Board(object):
