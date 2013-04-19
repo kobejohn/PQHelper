@@ -1,6 +1,234 @@
+from collections import deque
 import random
 
 import numpy
+
+from treenode import TreeNode
+
+
+class State(object):
+    """Simulates the possibilities of a PQ game.
+
+    Attributes represent a single state:
+    For example, the board, number of actions remaining and the results of
+    all valid swaps.
+
+    Simulation produces a tree representing one set of possibilities for a game.
+    Tree Structure:
+    state  --->  transition  ->  state
+             ->  ...
+             ->  transition  ->  state
+
+    Tree State Assumptions:
+    - Each state has (0+) transitions as children in the tree
+    - Each state that is a leaf has not been simulated yet
+
+    Tree Transition Assumptions:
+    - Each transition has (0 or 1) state as its child in the tree
+    - Each transition that is a leaf is an "end of turn" transition
+    """
+    def __init__(self, board=None, turn=1, actions_remaining=1):
+        self._type = 'state'
+        self._board = board or Board()
+        self._turn = turn
+        self._actions_remaining = actions_remaining
+        self._node = SimNode(self)
+
+    # Core attributes
+    @property
+    def board(self):
+        """This is non-settable to avoid unexpected behavior."""
+        return self._board
+
+    @property
+    def turn(self):
+        """This is non-settable to avoid unexpected behavior."""
+        return self._turn
+
+    @property
+    def actions_remaining(self):
+        """This is non-settable to avoid unexpected behavior."""
+        return self._actions_remaining
+
+    @property
+    def type(self):
+        return self._type
+
+    # Delegated tree behavior
+    def attach(self, other):
+        """Attach other state or transition as a child to self."""
+        self._node.graft_child(other._node)
+
+    def children(self):
+        """Return a tuple copy of the children in self."""
+        return (child.main for child in self._node.children)
+
+    @property
+    def parent(self):
+        """Return the parent of self."""
+        return self._node.parent.main
+
+    def _leaves_within_depth(self, absolute_turn_depth):
+        """Generate exactly the leaves within the tree rooted at self that
+        are within the absolute turn depth."""
+        for leaf in self._node.leaves:
+            try:  # handle states
+                turn = leaf.main.turn
+            except AttributeError:  # handle transitions (no "turn" attribute)
+                turn = leaf.parent.main.turn
+            if turn <= absolute_turn_depth:
+                yield leaf.main
+
+    # Core behavior
+    def end_of_turns(self, absolute_turn_depth=1, random_fill=False):
+        """Yield each qualifying EOT found within the tree rooted at self.
+        Complete all and only simulation to EOT within absolute_turn_depth.
+
+        Arguments:
+        absolute_turn_depth: no simulation will be done below this depth
+        random_fill: instruct the simulation to fill the board with random
+            tiles after each execution or not.
+        """
+        # tracking for unprocessed states and end of turns
+        states = deque()
+        eots = deque()
+        # start with a set of qualifying leaves in the tree rooted at self
+        leaves_within_depth = list(self._leaves_within_depth(absolute_turn_depth))
+        for leaf in leaves_within_depth:
+            # decide how to handle the current set of qualifying leaves
+            # -------------------------------------------------------------
+            if leaf.type == 'state':
+                states.append(leaf)
+            elif leaf.type == 'end of turn':
+                eots.append(leaf)
+            elif leaf.type == 'manadrain':
+                continue  # special case: ignore manadrain
+            else:
+                raise ValueError('Unexpectedly found a leaf that is not an'
+                                 ' "end of turn" and not a state:\n{}'
+                                 ''.format(leaf))
+            # -------------------------------------------------------------
+            # continue simulating until everything within turn limit is done
+            while eots or states:
+                # achieve basically depth-first simulation by trying EOT first
+                try:
+                    eot = eots.pop()
+                    new_turn_state = State(board=eot.parent.board.copy(),
+                                           turn=eot.parent.turn + 1,
+                                           actions_remaining=1)
+                    states.append(new_turn_state)
+                except IndexError:
+                    pass
+                state = states.pop()
+                # # # # # # # # # todo: Start atomic change. rollback if error
+                # handle EOT states
+                if state.actions_remaining <= 0:
+                    new_eot = EOT()
+                    state.attach(new_eot)
+                    # simulate more if within depth
+                    if state.turn + 1 <= absolute_turn_depth:
+                        eots.append(new_eot)
+                    yield new_eot
+                    continue  # no further simulation for this state
+                # handle swaps
+                for swap in state.board.potential_swaps():
+                    result_board, destroyed_groups = state.board.execute_once(swap=swap,
+                                                                              random_fill=random_fill)
+                    # finish this swap if it was invalid
+                    if not destroyed_groups:
+                        continue
+                    else:
+                        # attach the transition
+                        transition = Swap(swap)
+                        state.attach(transition)
+                        # attach the result state
+                        bonus_action = any(len(group) >= 4
+                                           for group in destroyed_groups)
+                        result_state = State(board=result_board,
+                                             turn=state.turn,
+                                             actions_remaining=state.actions_remaining - 1 + bonus_action)
+                        transition.attach(result_state)
+                        # handle any chain reactions
+                        potential_chain_reaction = result_state
+                        while potential_chain_reaction:
+                            result_board, destroyed_groups = potential_chain_reaction.board.execute_once(random_fill=random_fill)
+                            # finish this chain reaction if it was invalid
+                            if not destroyed_groups:
+                                states.append(potential_chain_reaction)
+                                break
+                            else:
+                                # attach the transition
+                                transition = ChainReaction()
+                                potential_chain_reaction.attach(transition)
+                                # attach the result state
+                                bonus_action = any(len(group) >= 4
+                                                   for group in destroyed_groups)
+                                result_state = State(board=result_board,
+                                                     turn=potential_chain_reaction.turn,
+                                                     actions_remaining=state.actions_remaining + bonus_action)
+                                transition.attach(result_state)
+                                # prepare to try for another chain reaction
+                                potential_chain_reaction = result_state
+                #at this point all swaps have been tried
+                #if nothing was valid, it's a manadrain
+                if not tuple(state.children()):
+                    manadrain = ManaDrain()
+                    state.attach(manadrain)
+                    yield manadrain
+                    continue  # no further simulation for this state
+                # handle spells
+                pass
+                # # # # # # # # #todo:      End atomic change
+
+
+class _Transition(object):
+    """Base class for all state-to-state transitions in a PQ simulation."""
+    def __init__(self, type_name='base transition'):
+        self._type = type_name
+        self._node = SimNode(main=self)
+
+    @property
+    def type(self):
+        return self._type
+
+    # Delegated tree behavior
+    def attach(self, other):
+        """Attach other state or transition as a child to self."""
+        self._node.graft_child(other._node)
+
+    def children(self):
+        """Return a tuple copy of the children in self."""
+        return tuple(child.main for child in self._node.children)
+
+    @property
+    def parent(self):
+        """Return the parent of self."""
+        return self._node.parent.main
+
+
+class Swap(_Transition):
+    def __init__(self, position_pair):
+        super(Swap, self).__init__('swap')
+        self._position_pair = position_pair
+
+    @property
+    def position_pair(self):
+        return self._position_pair
+
+
+class ChainReaction(_Transition):
+    def __init__(self):
+        super(ChainReaction, self).__init__('chain reaction')
+
+
+class EOT(_Transition):
+    def __init__(self):
+        super(EOT, self).__init__('eot')
+
+
+class ManaDrain(_Transition):
+    def __init__(self):
+        super(ManaDrain, self).__init__('manadrain')
 
 
 class Board(object):
@@ -19,7 +247,8 @@ class Board(object):
 
     # Execution Methods (Core behavior)
     def execute_once(self, swap=None,
-                     spell_changes=None, spell_destructions=None):
+                     spell_changes=None, spell_destructions=None,
+                     random_fill=False):
         """Execute the board only one time. Do not execute chain reactions.
 
         Arguments:
@@ -48,7 +277,8 @@ class Board(object):
         destroyed_tile_groups = bcopy._destroy(matched_position_groups)
         total_destroyed_tile_groups.extend(destroyed_tile_groups)
         bcopy._fall()
-        bcopy._random_fill()
+        if random_fill:
+            bcopy._random_fill()
         return bcopy, total_destroyed_tile_groups
 
     def _swap(self, swap):
@@ -425,6 +655,12 @@ class Tile(object):
 
     def is_color(self):
         return self._type in ('r', 'g', 'b', 'y')
+
+
+class SimNode(TreeNode):
+    """Provide node behavior for States and Transitions."""
+    def __init__(self, main):
+        super(SimNode, self).__init__(main=main)
 
 
 if __name__ == "__main__":

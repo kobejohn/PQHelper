@@ -1,8 +1,320 @@
 import unittest
 
-from mock import patch
-
+from pqhelper.base import State, _Transition, Swap, ChainReaction, EOT
 from pqhelper.base import Board, Tile
+
+
+# analyzer (used by simulator and also by UI)
+# state investigator
+
+
+class Test_Base_State(unittest.TestCase):
+    # Test Parameters
+    _board_string_two_paths = '........\n' \
+                              '........\n' \
+                              'g......g\n' \
+                              'g......g\n' \
+                              's......s\n' \
+                              's......s\n' \
+                              'xg....gx\n' \
+                              'rsrryysy'
+
+    # Instantiaion
+    def test___init___default_board_is_empty(self):
+        state = State()
+        self.assertTrue(state.board.is_empty())
+
+    def test___init___accepts_optional_board(self):
+        board = Board(self._board_string_two_paths)
+        state = State(board=board)
+        self.assertEqual(str(state.board), self._board_string_two_paths)
+
+    def test___init___default_turn_is_1(self):
+        state = State()
+        self.assertEqual(state.turn, 1)
+
+    def test___init___accepts_optional_turn(self):
+        state = State(turn=2)
+        self.assertEqual(state.turn, 2)
+
+    def test___init___default_actions_remaining_is_1(self):
+        state = State()
+        self.assertEqual(state.actions_remaining, 1)
+
+    def test___init___accepts_optional_actions_remaining(self):
+        state = State(actions_remaining=2)
+        self.assertEqual(state.actions_remaining, 2)
+
+    # Generating end_of_turns (core behavior)
+    def test_end_of_turns_produces_exactly_EOTs_within_turn_depth(self):
+        board = Board(self._board_string_two_paths)
+        state = State(board)
+        eots = list(state.end_of_turns(absolute_turn_depth=1,
+                                       random_fill=False))
+        eot_board_strings = [str(eot.parent.board) for eot in eots]
+        # confirm that the real boards match the specification
+        # one is swap on left side, other is swap on right side
+        eot_board_strings_spec = ['........\n'
+                                  '........\n'
+                                  'g......g\n'
+                                  'g......g\n'
+                                  's......s\n'
+                                  's......s\n'
+                                  'x.....gx\n'
+                                  'sg..yysy',
+
+                                  '........\n'
+                                  '........\n'
+                                  'g......g\n'
+                                  'g......g\n'
+                                  's......s\n'
+                                  's......s\n'
+                                  'xg.....x\n'
+                                  'rsrr..gs']
+        self.assertItemsEqual(eot_board_strings, eot_board_strings_spec,
+                              'Expected to produce exactly EOTs within the'
+                              ' turn limit:\n{}\n'
+                              'but got this:\n{}'
+                              ''.format('\n'.join(eot_board_strings_spec),
+                                        '\n'.join(eot_board_strings)))
+
+    def test_end_of_turns_does_no_simulation_below_absolute_turn_depth(self):
+        board = Board(self._board_string_two_paths)
+        state = State(board)
+        turn_limit = 1
+        # use list to make sure all the results are generated / sim is done
+        list(state.end_of_turns(absolute_turn_depth=turn_limit,
+                                random_fill=False))
+        leaves = [node.main for node in state._node.leaves]
+        for leaf in leaves:
+            if isinstance(leaf, State):
+                self.assertLessEqual(leaf.turn, turn_limit)
+            elif isinstance(leaf, _Transition):
+                self.assertLessEqual(leaf.parent.turn, turn_limit)
+
+    def test_end_of_turns_produces_depth_before_breadth(self):
+        board = Board(self._board_string_two_paths)
+        state = State(board)
+        eot_sequence = list(state.end_of_turns(absolute_turn_depth=10,
+                                               random_fill=False))
+        board_sequence = [str(eot.parent.board) for eot in eot_sequence]
+        board_sequence_LEFT = ['........\n'
+                               '........\n'
+                               'g......g\n'
+                               'g......g\n'
+                               's......s\n'
+                               's......s\n'
+                               'x.....gx\n'
+                               'sg..yysy',
+
+                               '........\n'
+                               '........\n'
+                               '.......g\n'
+                               '.......g\n'
+                               '.......s\n'
+                               'g......s\n'
+                               'g.....gx\n'
+                               'xg..yysy',
+
+                               '........\n'
+                               '........\n'
+                               '.......g\n'
+                               '.......g\n'
+                               '.......s\n'
+                               '.......s\n'
+                               '......gx\n'
+                               '.x..yysy']
+        board_sequence_RIGHT = ['........\n'
+                                '........\n'
+                                'g......g\n'
+                                'g......g\n'
+                                's......s\n'
+                                's......s\n'
+                                'xg.....x\n'
+                                'rsrr..gs',
+
+                                '........\n'
+                                '........\n'
+                                'g.......\n'
+                                'g.......\n'
+                                's.......\n'
+                                's......g\n'
+                                'xg.....g\n'
+                                'rsrr..gx',
+
+                                '........\n'
+                                '........\n'
+                                'g.......\n'
+                                'g.......\n'
+                                's.......\n'
+                                's.......\n'
+                                'xg......\n'
+                                'rsrr..x.']
+        left_first_spec = board_sequence_LEFT + board_sequence_RIGHT
+        right_first_spec = board_sequence_RIGHT + board_sequence_LEFT
+        self.assertTrue((board_sequence == left_first_spec)
+                        or board_sequence == right_first_spec,
+                        'Expected to see one complete depth of swaps followed'
+                        ' by the other but got this:\n{}'
+                        ''.format('\n'.join(board_sequence)))
+        #
+        #
+        #
+        #
+        #
+        # # below is swaps. change above to boards
+        # swap_sequence = [eot.parent.parent.position_pair for eot in eot_sequence]
+        # swap_sequence_LEFT = [((7, 0), (7, 1)),  # r <> s
+        #                       ((6, 0), (7, 0)),  # x <> s
+        #                       ((7, 0), (7, 1))]  # x <> g
+        # swap_sequence_RIGHT = [((7, 6), (7, 7)),  # r <> s
+        #                        ((6, 7), (7, 7)),  # x <> s
+        #                        ((7, 6), (7, 7))]  # x <> g
+        # left_first_spec = swap_sequence_LEFT + swap_sequence_RIGHT
+        # right_first_spec = swap_sequence_RIGHT + swap_sequence_LEFT
+        # self.assertTrue((swap_sequence == left_first_spec)
+        #                 or (swap_sequence == right_first_spec),
+        #                 'Expected to see one complete depth of swaps followed'
+        #                 ' by the other like one of these:\n{}\n{}'
+        #                 '\nbut got this:\n{}'
+        #                 ''.format(left_first_spec, right_first_spec,
+        #                           swap_sequence))
+
+    #todo:  specify time limit?
+
+    # Convenience methods
+    def test__leaves_within_depth_produces_exactly_leaves_within_depth(self):
+        depth = 2
+        root, leaves_within_depth, leaves_below_depth \
+            = self.produce_fake_simulation()
+        leaf_ids = [id(leaf) for leaf in root._leaves_within_depth(depth)]
+        # Safety confirmation that there are some leaves below depth 2 to ignore
+        if not leaves_below_depth:
+            self.fail('Expected to get a simulation with leaves below the'
+                      ' target depth but did not.')
+        # Confirm that the depth 2 leaves exactly match specification
+        leaf_ids_spec = [id(leaf) for leaf in leaves_within_depth]
+        self.assertItemsEqual(leaf_ids, leaf_ids_spec)
+
+    # Tree behavior
+    def test_attach_attaches_children(self):
+        state = State()
+        transition = _Transition()
+        try:
+            state.attach(transition)
+        except Exception as e:
+            self.fail('Unexpected problem attaching a child to a state:'
+                      '\n{}'.format(e))
+
+    def test_children_provides_children(self):
+        state = State()
+        transition = _Transition()
+        state.attach(transition)
+        children_ids = [id(child) for child in state.children()]
+        children_ids_spec = [id(transition)]
+        self.assertItemsEqual(children_ids, children_ids_spec)
+
+    def test_parent_provides_parent(self):
+        state = State()
+        transition = _Transition()
+        transition.attach(state)
+        parent_id = id(state.parent)
+        parent_id_spec = id(transition)
+        self.assertEqual(parent_id, parent_id_spec)
+
+    def produce_fake_simulation(self):
+        """Produce a fake simulation.
+
+        Return: root, leaves_within_depth_2, leaves_below_depth_2
+        """
+        # create a tree with:
+        #   - level 2 leaves: 1 EOT, 1 state
+        #   - level 3 leaves: 1 EOT, 1 state
+        # make all the parts
+        root_t1 = State(turn=1)  # any state is fine
+        a_transition_t1 = ChainReaction()  # any transition is fine
+        a_state_t2 = State(turn=2)
+        a_transition_t2 = ChainReaction()
+        a_state_t3 = State(turn=3)
+        a_transition_t3 = ChainReaction()  # level 3 transition leaf
+        b_transition_t1 = ChainReaction()
+        b_state_t2 = State(turn=2)
+        b_transition_t2 = ChainReaction()
+        b_state_t3 = State(turn=3)  # level 3 state leaf
+        c_transition_t1 = ChainReaction()
+        c_state_t2 = State(turn=2)
+        c_transition_t2 = ChainReaction()  # level 2 transition leaf
+        d_transition_t1 = ChainReaction()
+        d_state_t2 = State(turn=2)  # level 2 state leaf
+        # build level 1 (no leaves)
+        root_t1.attach(a_transition_t1)
+        root_t1.attach(b_transition_t1)
+        root_t1.attach(c_transition_t1)
+        root_t1.attach(d_transition_t1)
+        # build level 2 (c and d are leaves)
+        a_transition_t1.attach(a_state_t2)
+        b_transition_t1.attach(b_state_t2)
+        c_transition_t1.attach(c_state_t2)
+        d_transition_t1.attach(d_state_t2)
+        a_state_t2.attach(a_transition_t2)
+        b_state_t2.attach(b_transition_t2)
+        c_state_t2.attach(c_transition_t2)
+        # build level 3 (a and b are leaves)
+        a_transition_t2.attach(a_state_t3)
+        b_transition_t2.attach(b_state_t3)
+        a_state_t3.attach(a_transition_t3)
+        leaves_within_2 = (c_transition_t2, d_state_t2)
+        leaves_below_2 = (a_transition_t3, b_state_t3)
+        return root_t1, leaves_within_2, leaves_below_2
+
+
+class Test_Transitions(unittest.TestCase):
+    def test___init__gives_a_name_to_the_transition(self):
+        type_spec = 'test'
+        transition = _Transition(type_spec)
+        self.assertEqual(transition.type, type_spec)
+
+    def test_attach_attaches_children(self):
+        transition = _Transition()
+        state = State()
+        try:
+            transition.attach(state)
+        except Exception as e:
+            self.fail('Unexpected problem attaching a child to a transition:'
+                      '\n{}'.format(e))
+
+    def test_children_provides_children(self):
+        transition = _Transition()
+        state = State()
+        transition.attach(state)
+        children_ids = [id(child) for child in transition.children()]
+        children_ids_spec = [id(state)]
+        self.assertItemsEqual(children_ids, children_ids_spec)
+
+    def test_parent_provides_parent(self):
+        transition = _Transition()
+        state = State()
+        state.attach(transition)
+        parent_id = id(transition.parent)
+        parent_id_spec = id(state)
+        self.assertEqual(parent_id, parent_id_spec)
+
+    def test_Swap_type_name_is_swap(self):
+        swap = Swap(((0, 0), (0, 1)))
+        self.assertEqual(swap.type, 'swap')
+
+    def test_Swap___init___takes_a_pair_of_coordinates(self):
+        position_pair_spec = ((0, 0), (0, 1))
+        swap = Swap(position_pair_spec)
+        self.assertEqual(swap.position_pair, position_pair_spec)
+
+    def test_ChainReaction_type_name_is_chain_reaction(self):
+        chainreaction = ChainReaction()
+        self.assertEqual(chainreaction.type, 'chain reaction')
+
+    def test_EOT_type_name_is_eot(self):
+        eot = EOT()
+        self.assertEqual(eot.type, 'eot')
 
 
 class Test_Base_Board(unittest.TestCase):
@@ -84,9 +396,7 @@ class Test_Base_Board(unittest.TestCase):
                          'Expected to receive a copy of board but received'
                          'the same board object instead.')
 
-    @patch.object(Tile, 'random_tile')
-    def test_execute_once_simulates_swap(self, mock_random):
-        mock_random.return_value = Tile('.')  # always return blank
+    def test_execute_once_simulates_swap(self):
         board_string = '........\n' \
                        '........\n' \
                        '........\n' \
@@ -97,7 +407,8 @@ class Test_Base_Board(unittest.TestCase):
                        'rs......'
         board = Board(board_string)
         swap = [(7, 0), (7, 1)]
-        result, destroyed_groups = board.execute_once(swap=swap)
+        result, destroyed_groups = board.execute_once(swap=swap,
+                                                      random_fill=False)
         # Combined test for clarity
         # 1) confirm the effects on the returned board
         result_board_spec = '........\n' \
@@ -117,9 +428,7 @@ class Test_Base_Board(unittest.TestCase):
         destroyed_groups_spec = [[skull, skull, skull]]
         self.assertItemsEqual(destroyed_groups, destroyed_groups_spec)
 
-    @patch.object(Tile, 'random_tile')
-    def test_execute_once_does_not_execute_chain_reactions(self, mock_random):
-        mock_random.return_value = Tile('.')  # always return blank
+    def test_execute_once_does_not_execute_chain_reactions(self):
         board_string = '........\n' \
                        '........\n' \
                        '........\n' \
@@ -130,7 +439,8 @@ class Test_Base_Board(unittest.TestCase):
                        '.....rsr'
         board = Board(board_string)
         swap = [(7, 6), (7, 7)]
-        result, destroyed_groups = board.execute_once(swap=swap)
+        result, destroyed_groups = board.execute_once(swap=swap,
+                                                      random_fill=False)
         # Combined test for simplicity
         # 1) confirm the effects on the returned board
         result_spec = '........\n' \
@@ -156,9 +466,7 @@ class Test_Base_Board(unittest.TestCase):
                               ''.format(board, destroyed_groups_spec,
                                         destroyed_groups))
 
-    @patch.object(Tile, 'random_tile')
-    def test_execute_once_simulates_spells(self, mock_random):
-        mock_random.return_value = Tile('.')  # always return blank
+    def test_execute_once_simulates_spells(self):
         board_string = '........\n' \
                        '........\n' \
                        '........\n' \
@@ -176,7 +484,8 @@ class Test_Base_Board(unittest.TestCase):
         spell_destructions = [(7, 0)]
         result, destroyed_groups = \
             board.execute_once(spell_changes=spell_changes,
-                               spell_destructions=spell_destructions)
+                               spell_destructions=spell_destructions,
+                               random_fill=False)
         # Combined test for simplicity
         # 1) confirm the effects on the returned board
         #remaining result should be just s at (7, 1)
@@ -196,6 +505,25 @@ class Test_Base_Board(unittest.TestCase):
         destroyed_groups_spec = [[skull, skull, skull],
                                  [red]]
         self.assertItemsEqual(destroyed_groups, destroyed_groups_spec)
+
+    # Execution - execute_once with / without random fill (core behavior)
+    def test_execute_once_with_random_fill_fills_empty_board(self):
+        board = Board()
+        if not board.is_empty():
+            self.fail('Expected an empty board to start.')
+        result_board, x = board.execute_once(random_fill=True)
+        self.assertFalse(result_board.is_empty(),
+                         'Expected to find a full board but found this:\n{}'
+                         ''.format(result_board))
+
+    def test_execute_once_without_random_fill_leaves_empty_board_empty(self):
+        board = Board()
+        if not board.is_empty():
+            self.fail('Expected an empty board to start.')
+        result_board, x = board.execute_once(random_fill=False)
+        self.assertTrue(result_board.is_empty(),
+                        'Expected to find a full board but found this:\n{}'
+                        ''.format(result_board))
 
     # Execution - swap (core behavior)
     def test__swap_swaps_two_adjacent_positions(self):
@@ -604,11 +932,6 @@ class Test_Base_Tile(unittest.TestCase):
                         'Specification is using a valid character to test'
                         'invalid characters. Please fix the spec.')
         self.assertRaises(ValueError, Tile, inall_type)
-
-    def test___new___produces_singletons_to_avoid_creating_millions(self):
-        red_1 = Tile('r')
-        red_2 = Tile('r')
-        self.assertIs(red_1, red_2)
 
     # Matching
     def test_matches_for_blank_is_False_for_all_types_including_blank(self):
