@@ -79,6 +79,13 @@ class State(object):
             if turn <= absolute_turn_depth:
                 yield leaf.main
 
+
+
+
+
+
+
+
     # Core behavior
     def end_of_turns(self, absolute_turn_depth=1, random_fill=False):
         """Yield each qualifying EOT found within the tree rooted at self.
@@ -121,12 +128,33 @@ class State(object):
             #  Begin atomic changes
             # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-            # handle state with no actions remaining.
+
+#todo: simple: when a manadrain is found.. replace the former EOT + new state with a manadrain <<<<<__---------
+#todo: however, now mana drains are not discovered until next turn....
+#todo: aaaand previously returned EOTs are now invalid
+#todo: ... maybe tag EOT as manadrain: unknown, no, yes. then just modify previous ones
+#todo: but that modifies previous results unexpectedly.
+#todo: just test that shit for manadrain. but that's a lot of processing :(
+#todo: this code is fine for the normal case. also need to add it before creating EOT
+            # handle states that are end of turn
             if state.actions_remaining <= 0:
-                new_eot = EOT()
-                state.attach(new_eot)
-                ready_for_action_stack.append(new_eot)
-                yield new_eot
+                # determine if this is a manadrain or just end of turn
+                is_manadrain = True
+                for swap_pair in state.board.potential_swaps():
+                    result_board, destroyed_groups = \
+                        state.board.execute_once(swap=swap_pair,
+                                                 random_fill=random_fill)
+                    if destroyed_groups:
+                        is_manadrain = False
+                        break
+                # attach appropriate EOT or ManaDrain
+                if is_manadrain:
+                    end = ManaDrain()
+                else:
+                    end = EOT()
+                    ready_for_action_stack.append(end)
+                state.attach(end)
+                yield end
                 continue  # no further simulation for this state
             # handle swaps
             for swap_pair in state.board.potential_swaps():

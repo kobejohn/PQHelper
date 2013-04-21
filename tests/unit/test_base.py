@@ -4,9 +4,10 @@ from pqhelper.base import State
 from pqhelper.base import _Transition, Swap, ChainReaction, EOT, ManaDrain
 from pqhelper.base import Board, Tile
 
-#todo:  specify time limit for state.end_of_turns
-#todo: specify atomicness of core algorithm in state.end_of_turns
-#todo: refactor giant state.end_of_turns algorithm but not until multiprocessing
+# specify atomicness of core algorithm in state.end_of_turns
+# refactor giant state.end_of_turns algorithm but not until multiprocessing
+# analyzer (used by simulator and also by UI)
+# state investigator
 
 
 class Test_Base_State(unittest.TestCase):
