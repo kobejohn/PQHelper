@@ -90,99 +90,105 @@ class State(object):
             tiles after each execution or not.
         """
         # tracking for unprocessed states and end of turns
-        states = deque()
-        eots = deque()
-        # start with a set of qualifying leaves in the tree rooted at self
-        leaves_within_depth = list(self._leaves_within_depth(absolute_turn_depth))
-        for leaf in leaves_within_depth:
-
-            print 'start leaf: '
-
-
-            # decide how to handle the current set of qualifying leaves
-            # -------------------------------------------------------------
-            if leaf.type == 'state':
-                states.append(leaf)
-            elif leaf.type == 'end of turn':
-                eots.append(leaf)
-            elif leaf.type == 'mana drain':
-                continue  # special case: ignore manadrain
+        ready_for_action_stack = deque(leaf.main for leaf in self._node.leaves)
+        # continue simulating until everything within turn limit is done
+        while ready_for_action_stack:
+            next_job = ready_for_action_stack.pop()
+            # get a state to simulate or continue to the next job
+            if next_job.type == 'mana drain':
+                continue  # ignore mana drains
+            elif next_job.type == 'state' and not tuple(next_job.children()):
+                # this state is ready to be simulated
+                if next_job.turn > absolute_turn_depth:
+                    continue  # ignore states over the turn limit
+                state = next_job
+            elif next_job.type == 'end of turn':
+                # ignore end of turns at the turn limit
+                if next_job.parent.turn + 1 > absolute_turn_depth:
+                    continue
+                # the next turn is within the turn limit so simulate it
+                state = State(board=next_job.parent.board.copy(),
+                              turn=next_job.parent.turn + 1,
+                              actions_remaining=1)
+                # attach the new turn to the previous turn
+                next_job.attach(state)
             else:
-                raise ValueError('Unexpectedly found a leaf that is not an'
-                                 ' end of turn and not a state:\n{}'
-                                 ''.format(leaf))
-            # -------------------------------------------------------------
-            # continue simulating until everything within turn limit is done
-            while eots or states:
-                # achieve basically depth-first simulation by trying EOT first
-                try:
-                    eot = eots.pop()
-                    new_turn_state = State(board=eot.parent.board.copy(),
-                                           turn=eot.parent.turn + 1,
-                                           actions_remaining=1)
-                    states.append(new_turn_state)
-                    continue  # done with this state
-                except IndexError:
-                    pass
-                # get and qualify state to work on
-                state = states.pop()
-                if state.turn > absolute_turn_depth:
-                    continue  # ignore this state
-                # # # # # # # # # todo: Start atomic change. rollback if error
-                # handle EOT states
-                if state.actions_remaining <= 0:
-                    new_eot = EOT()
-                    state.attach(new_eot)
-                    eots.append(new_eot)
-                    yield new_eot
-                    continue  # no further simulation for this state
-                # handle swaps
-                for swap_pair in state.board.potential_swaps():
-                    result_board, destroyed_groups = state.board.execute_once(swap=swap_pair,
-                                                                              random_fill=random_fill)
-                    # finish this swap if it was invalid
+                raise ValueError('Expected an unsimulated state or some kind of'
+                                 'end of turn transition in the job stack but'
+                                 'found: {}'.format(next_job))
+
+            # # # # # # # # # # # # # # # # # # # # # # # # # # #
+            #  Begin atomic changes
+            # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+            # handle state with no actions remaining.
+            if state.actions_remaining <= 0:
+                new_eot = EOT()
+                state.attach(new_eot)
+                ready_for_action_stack.append(new_eot)
+                yield new_eot
+                continue  # no further simulation for this state
+            # handle swaps
+            for swap_pair in state.board.potential_swaps():
+                result_board, destroyed_groups = \
+                    state.board.execute_once(swap=swap_pair,
+                                             random_fill=random_fill)
+                if not destroyed_groups:
+                    continue  # discard this swap if it was invalid
+                # attach the transition
+                swap = Swap(swap_pair)
+                state.attach(swap)
+                # attach the result state
+                used_bonus_action = False
+                bonus_action = any(len(group) >= 4
+                                   for group in destroyed_groups)
+                if bonus_action:
+                    used_bonus_action = True
+                result_state = State(board=result_board,
+                                     turn=state.turn,
+                                     actions_remaining=
+                                     state.actions_remaining - 1 + bonus_action)
+                swap.attach(result_state)
+                # handle any chain reactions
+                potential_chain = result_state
+                while potential_chain:
+                    result_board, destroyed_groups = \
+                        potential_chain.board.execute_once(random_fill=
+                                                           random_fill)
+                    # when chain reaction is done, submit it to the job stack
                     if not destroyed_groups:
-                        continue
+                        ready_for_action_stack.append(potential_chain)
+                        break
                     # attach the transition
-                    swap = Swap(swap_pair)
-                    state.attach(swap)
+                    chain = ChainReaction()
+                    potential_chain.attach(chain)
                     # attach the result state
-                    bonus_action = any(len(group) >= 4
-                                       for group in destroyed_groups)
-                    result_state = State(board=result_board,
-                                         turn=state.turn,
-                                         actions_remaining=state.actions_remaining - 1 + bonus_action)
-                    swap.attach(result_state)
-                    # handle any chain reactions
-                    potential_chain_reaction = result_state
-                    while potential_chain_reaction:
-                        result_board, destroyed_groups = potential_chain_reaction.board.execute_once(random_fill=random_fill)
-                        # finish this chain reaction if it was invalid
-                        if not destroyed_groups:
-                            states.append(potential_chain_reaction)
-                            break
-                        # attach the transition
-                        chain = ChainReaction()
-                        potential_chain_reaction.attach(chain)
-                        # attach the result state
+                    if used_bonus_action:
+                        bonus_action = 0
+                    else:
                         bonus_action = any(len(group) >= 4
                                            for group in destroyed_groups)
-                        result_state = State(board=result_board,
-                                             turn=potential_chain_reaction.turn,
-                                             actions_remaining=potential_chain_reaction.actions_remaining + bonus_action)
-                        swap.attach(result_state)
-                        # prepare to try for another chain reaction
-                        potential_chain_reaction = result_state
-                #at this point all swaps have been tried
-                #if nothing was valid, it's a manadrain
-                if not tuple(state.children()):
-                    manadrain = ManaDrain()
-                    state.attach(manadrain)
-                    yield manadrain
-                    continue  # no further simulation for this state
-                # handle spells
-                pass
-                # # # # # # # # #todo:      End atomic change
+                        used_bonus_action = True
+                    result_state = \
+                        State(board=result_board,
+                              turn=potential_chain.turn,
+                              actions_remaining=
+                              potential_chain.actions_remaining + bonus_action)
+                    swap.attach(result_state)
+                    # prepare to try for another chain reaction
+                    potential_chain = result_state
+            #at this point all swaps have been tried
+            #if nothing was valid, it's a manadrain
+            if not tuple(state.children()):
+                manadrain = ManaDrain()
+                state.attach(manadrain)
+                yield manadrain  # manadrain is a type of end of turn
+                continue  # no further simulation for this state
+            # handle spells only if this was not a manadrain
+            pass
+            # # # # # # # # # # # # # # # # # # # # # # # # # # #
+            #  End atomic changes
+            # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     # Special methods
     def __str__(self):

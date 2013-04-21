@@ -4,7 +4,7 @@ setup(
     name='PQHelper',
     version='0.0.0',
     packages=[''],
-    requires=['numpy'],
+    requires=['numpy', 'treenode'],
     tests_require=['mock'],
     url='http://github.com/kobejohn/PQHelper',
     license='MIT',

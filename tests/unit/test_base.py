@@ -4,9 +4,9 @@ from pqhelper.base import State
 from pqhelper.base import _Transition, Swap, ChainReaction, EOT, ManaDrain
 from pqhelper.base import Board, Tile
 
-
-# analyzer (used by simulator and also by UI)
-# state investigator
+#todo:  specify time limit for state.end_of_turns
+#todo: specify atomicness of core algorithm in state.end_of_turns
+#todo: refactor giant state.end_of_turns algorithm but not until multiprocessing
 
 
 class Test_Base_State(unittest.TestCase):
@@ -82,9 +82,9 @@ class Test_Base_State(unittest.TestCase):
     def test_end_of_turns_does_no_simulation_below_absolute_turn_depth(self):
         board = Board(self._board_string_two_paths)
         state = State(board)
-        turn_limit = 1
+        turn_limit = 2
         # use list to make sure all the results are generated / sim is done
-        list(state.end_of_turns(absolute_turn_depth=turn_limit,
+        list(state.end_of_turns(absolute_turn_depth=2,
                                 random_fill=False))
         leaves = [node.main for node in state._node.leaves]
         for leaf in leaves:
@@ -96,92 +96,56 @@ class Test_Base_State(unittest.TestCase):
     def test_end_of_turns_produces_depth_before_breadth(self):
         board = Board(self._board_string_two_paths)
         state = State(board)
-        eot_sequence = list(state.end_of_turns(absolute_turn_depth=10,
-                                               random_fill=False))
-        board_sequence = [str(eot.parent.board) for eot in eot_sequence]
-        board_sequence_LEFT = ['........\n'
-                               '........\n'
-                               'g......g\n'
-                               'g......g\n'
-                               's......s\n'
-                               's......s\n'
-                               'x.....gx\n'
-                               'sg..yysy',
-
-                               '........\n'
-                               '........\n'
-                               '.......g\n'
-                               '.......g\n'
-                               '.......s\n'
-                               'g......s\n'
-                               'g.....gx\n'
-                               'xg..yysy',
-
-                               '........\n'
-                               '........\n'
-                               '.......g\n'
-                               '.......g\n'
-                               '.......s\n'
-                               '.......s\n'
-                               '......gx\n'
-                               '.x..yysy']
-        board_sequence_RIGHT = ['........\n'
-                                '........\n'
-                                'g......g\n'
-                                'g......g\n'
-                                's......s\n'
-                                's......s\n'
-                                'xg.....x\n'
-                                'rsrr..gs',
-
-                                '........\n'
-                                '........\n'
-                                'g.......\n'
-                                'g.......\n'
-                                's.......\n'
-                                's......g\n'
-                                'xg.....g\n'
-                                'rsrr..gx',
-
-                                '........\n'
-                                '........\n'
-                                'g.......\n'
-                                'g.......\n'
-                                's.......\n'
-                                's.......\n'
-                                'xg......\n'
-                                'rsrr..x.']
-        left_first_spec = board_sequence_LEFT + board_sequence_RIGHT
-        right_first_spec = board_sequence_RIGHT + board_sequence_LEFT
-        self.assertTrue((board_sequence == left_first_spec)
-                        or board_sequence == right_first_spec,
-                        'Expected to see one complete depth of swaps followed'
-                        ' by the other but got this:\n{}'
+        enough_turns_to_complete_either_side = 5
+        eots = state.end_of_turns(absolute_turn_depth=
+                                  enough_turns_to_complete_either_side,
+                                  random_fill=False)
+        eots = list(eots)
+        board_sequence = [str(eot.parent.board) for eot in eots]
+        # confirm that end of one set of actions comes before beginning of other
+        left_start = '........\n' \
+                     '........\n' \
+                     'g......g\n' \
+                     'g......g\n' \
+                     's......s\n' \
+                     's......s\n' \
+                     'x.....gx\n' \
+                     'sg..yysy'
+        left_end = '........\n' \
+                   '........\n' \
+                   '.......g\n' \
+                   '.......g\n' \
+                   '.......s\n' \
+                   '.......s\n' \
+                   '......gx\n' \
+                   '.x..yysy'
+        right_start = '........\n' \
+                      '........\n' \
+                      'g......g\n' \
+                      'g......g\n' \
+                      's......s\n' \
+                      's......s\n' \
+                      'xg.....x\n' \
+                      'rsrr..gs'
+        right_end = '........\n' \
+                    '........\n' \
+                    'g.......\n' \
+                    'g.......\n' \
+                    's.......\n' \
+                    's.......\n' \
+                    'xg......\n' \
+                    'rsrr..x.'
+        left_start_index = board_sequence.index(left_start)
+        left_end_index = board_sequence.index(left_end)
+        right_start_index = board_sequence.index(right_start)
+        right_end_index = board_sequence.index(right_end)
+        left_end_before_right_start = left_end_index < right_start_index
+        right_end_before_left_start = right_end_index < left_start_index
+        self.assertTrue(left_end_before_right_start
+                        or right_end_before_left_start,
+                        'Expected to see one side of swaps done before the'
+                        ' other starts but got this:\n{}'
                         ''.format('\n'.join(board_sequence)))
-        #
-        #
-        #
-        #
-        #
-        # # below is swaps. change above to boards
-        # swap_sequence = [eot.parent.parent.position_pair for eot in eot_sequence]
-        # swap_sequence_LEFT = [((7, 0), (7, 1)),  # r <> s
-        #                       ((6, 0), (7, 0)),  # x <> s
-        #                       ((7, 0), (7, 1))]  # x <> g
-        # swap_sequence_RIGHT = [((7, 6), (7, 7)),  # r <> s
-        #                        ((6, 7), (7, 7)),  # x <> s
-        #                        ((7, 6), (7, 7))]  # x <> g
-        # left_first_spec = swap_sequence_LEFT + swap_sequence_RIGHT
-        # right_first_spec = swap_sequence_RIGHT + swap_sequence_LEFT
-        # self.assertTrue((swap_sequence == left_first_spec)
-        #                 or (swap_sequence == right_first_spec),
-        #                 'Expected to see one complete depth of swaps followed'
-        #                 ' by the other like one of these:\n{}\n{}'
-        #                 '\nbut got this:\n{}'
-        #                 ''.format(left_first_spec, right_first_spec,
-        #                           swap_sequence))
-
-    #todo:  specify time limit?
 
     # Convenience methods
     def test__leaves_within_depth_produces_exactly_leaves_within_depth(self):
