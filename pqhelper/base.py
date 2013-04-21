@@ -32,7 +32,7 @@ class State(object):
         self._board = board or Board()
         self._turn = turn
         self._actions_remaining = actions_remaining
-        self._node = SimNode(self)
+        self._node = _SimNode(self)
 
     # Core attributes
     @property
@@ -240,7 +240,7 @@ class _Transition(object):
     """Base class for all state-to-state transitions in a PQ simulation."""
     def __init__(self, type_name='base transition'):
         self._type = type_name
-        self._node = SimNode(main=self)
+        self._node = _SimNode(main=self)
 
     @property
     def type(self):
@@ -663,8 +663,13 @@ class Tile(object):
                        'x': 2,
                        'm': 2}
     _random_distribution = list()
-    for tile_type, weight in _random_weights.items():
-        _random_distribution += (tile_type,) * weight
+    for __tile_type, __weight in _random_weights.items():
+        _random_distribution += (__tile_type,) * __weight
+    try:
+        del __tile_type
+        del __weight
+    except NameError:
+        pass
 
     def __init__(self, type_character):
         if type_character in self._all_types:
@@ -718,10 +723,10 @@ class Tile(object):
         return self._type in ('r', 'g', 'b', 'y')
 
 
-class SimNode(TreeNode):
+class _SimNode(TreeNode):
     """Provide node behavior for States and Transitions."""
     def __init__(self, main):
-        super(SimNode, self).__init__(main=main)
+        super(_SimNode, self).__init__(main=main)
 
 
 if __name__ == "__main__":
