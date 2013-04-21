@@ -162,6 +162,12 @@ class State(object):
                                      actions_remaining=
                                      state.actions_remaining - 1 + bonus_action)
                 swap.attach(result_state)
+                # hook for special game behavior
+                if self._disallow_state(state):
+                    filtered = Filtered()
+                    result_state.attach(filtered)
+                    yield filtered
+                    continue  # no more simulation for this filtered state
                 # handle any chain reactions
                 potential_chain = result_state
                 while potential_chain:
@@ -188,6 +194,12 @@ class State(object):
                               actions_remaining=
                               potential_chain.actions_remaining + bonus_action)
                     swap.attach(result_state)
+                    # hook for special game behavior
+                    if self._disallow_state(state):
+                        filtered = Filtered()
+                        result_state.attach(filtered)
+                        yield filtered
+                        break  # no more simulation for this filtered state
                     # prepare to try for another chain reaction
                     potential_chain = result_state
             #at this point all swaps have been tried
@@ -202,6 +214,9 @@ class State(object):
             # # # # # # # # # # # # # # # # # # # # # # # # # # #
             #  End atomic changes
             # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    def _disallow_state(self, state):
+        return False
 
     # Special methods
     def __str__(self):
@@ -262,13 +277,19 @@ class ChainReaction(_Transition):
 
 
 class EOT(_Transition):
-    def __init__(self):
-        super(EOT, self).__init__('end of turn')
+    def __init__(self, alternative_name=None):
+        name = alternative_name or 'end of turn'
+        super(EOT, self).__init__(name)
 
 
-class ManaDrain(_Transition):
+class ManaDrain(EOT):
     def __init__(self):
         super(ManaDrain, self).__init__('mana drain')
+
+
+class Filtered(EOT):
+    def __init__(self):
+        super(Filtered, self).__init__('filtered')
 
 
 class Board(object):

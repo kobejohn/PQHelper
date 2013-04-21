@@ -1,5 +1,7 @@
 import unittest
 
+from mock import patch
+
 from pqhelper.base import State
 from pqhelper.base import _Transition, Swap, ChainReaction, EOT, ManaDrain
 from pqhelper.base import Board, Tile
@@ -142,6 +144,19 @@ class Test_Base_State(unittest.TestCase):
                         'Expected to see one side of swaps done before the'
                         ' other starts but got this:\n{}'
                         ''.format('\n'.join(board_sequence)))
+
+    @patch.object(State, '_disallow_state')
+    def test_end_of_turns_stops_bad_states_with_Filtered(self, mock_disallow):
+        mock_disallow.return_value = True  # disallow all states
+        board = Board(self._board_string_two_paths)
+        state = State(board)
+        enough_turns_to_go_beyond_filtered = 2
+        eots = state.end_of_turns(absolute_turn_depth=
+                                  enough_turns_to_go_beyond_filtered,
+                                  random_fill=False)
+        eots = list(eots)
+        # confirm that all results were filtered and tagged
+        self.assertTrue(all(eot.type == 'filtered' for eot in eots))
 
     # Convenience methods
     def test__leaves_within_depth_produces_exactly_leaves_within_depth(self):
