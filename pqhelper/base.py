@@ -79,13 +79,6 @@ class State(object):
             if turn <= absolute_turn_depth:
                 yield leaf.main
 
-
-
-
-
-
-
-
     # Core behavior
     def end_of_turns(self, absolute_turn_depth=1, random_fill=False):
         """Yield each qualifying EOT found within the tree rooted at self.
@@ -128,14 +121,6 @@ class State(object):
             #  Begin atomic changes
             # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-
-#todo: simple: when a manadrain is found.. replace the former EOT + new state with a manadrain <<<<<__---------
-#todo: however, now mana drains are not discovered until next turn....
-#todo: aaaand previously returned EOTs are now invalid
-#todo: ... maybe tag EOT as manadrain: unknown, no, yes. then just modify previous ones
-#todo: but that modifies previous results unexpectedly.
-#todo: just test that shit for manadrain. but that's a lot of processing :(
-#todo: this code is fine for the normal case. also need to add it before creating EOT
             # handle states that are end of turn
             if state.actions_remaining <= 0:
                 # determine if this is a manadrain or just end of turn
