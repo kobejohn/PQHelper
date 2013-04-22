@@ -166,7 +166,6 @@ class State(object):
                 if self._disallow_state(state):
                     filtered = Filtered()
                     result_state.attach(filtered)
-                    yield filtered
                     continue  # no more simulation for this filtered state
                 # handle any chain reactions
                 potential_chain = result_state
@@ -176,6 +175,11 @@ class State(object):
                                                            random_fill)
                     # when chain reaction is done, submit it to the job stack
                     if not destroyed_groups:
+                        # hook for special game behavior
+                        if self._disallow_state(state):
+                            filtered = Filtered()
+                            result_state.attach(filtered)
+                            break  # no more simulation for this filtered state
                         ready_for_action_stack.append(potential_chain)
                         break
                     # attach the transition
@@ -194,12 +198,6 @@ class State(object):
                               actions_remaining=
                               potential_chain.actions_remaining + bonus_action)
                     swap.attach(result_state)
-                    # hook for special game behavior
-                    if self._disallow_state(state):
-                        filtered = Filtered()
-                        result_state.attach(filtered)
-                        yield filtered
-                        break  # no more simulation for this filtered state
                     # prepare to try for another chain reaction
                     potential_chain = result_state
             #at this point all swaps have been tried

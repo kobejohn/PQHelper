@@ -4,6 +4,9 @@ from pqhelper.capture import State, Board
 
 
 class Test_Capture_State(unittest.TestCase):
+    def setUp(self):
+        State.clear_duplicate_tree()
+
     def test__disallow_state_disallows_duplicate_boards(self):
         board_string = '........\n' \
                        '........\n' \

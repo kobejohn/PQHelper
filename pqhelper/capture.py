@@ -5,7 +5,38 @@ class Board(_base.Board):
     pass  # no changes
 
 
+class _DuplicateTree(_base.TreeNode):
+    def __init__(self, tile=None):
+        super(_DuplicateTree, self).__init__(tile=tile)
+
+    def find_or_graft(self, board):
+        node = self
+        for row in range(8):
+            for col in range(8):
+                tile = board[row, col]
+                found_tile = False
+                for child in node.children:
+                    if child.tile == tile:
+                        node = child
+                        found_tile = True
+                        break  # found an existing match
+                if not found_tile:
+                    # no existing matches found so attach it
+                    # it already can't be a duplicate so stop here
+                    child = _DuplicateTree(tile)
+                    node.graft_child(child)
+                    return False
+        return True  # finally return True if all tiles were grafted previously
+
+
 class State(_base.State):
+    __duplicate_root = _DuplicateTree()
+
+    @classmethod
+    def clear_duplicate_tree(cls):
+        for child in cls.__duplicate_root.children:
+            child.trim()
+
     def _disallow_state(self, state):
         """Disallow states that are not useful to continue simulating."""
         dissallow_methods = (self.__duplicate_board, self.__impossible_by_count)
@@ -13,12 +44,7 @@ class State(_base.State):
 
     def __duplicate_board(self, state):
         """Disallow any board that has been simulated elsewhere."""
-        # get or create the solution space
-        try:
-            duplicate_tree = self.__duplicate_tree
-        except AttributeError:
-            duplicate_tree = self.__duplicate_tree = _DuplicateTree()
-        return duplicate_tree.find_or_graft(state.board)
+        return self.__duplicate_root.find_or_graft(state.board)
 
     def __impossible_by_count(self, state):
         """Disallow any board that has insufficient tile count to solve."""
@@ -58,27 +84,21 @@ class State(_base.State):
         return False
 
 
-class _DuplicateTree(_base.TreeNode):
-    def __init__(self, tile=None):
-        super(_DuplicateTree, self).__init__(tile=tile)
-
-    def find_or_graft(self, board):
-        node = self
-        for row in range(8):
-            for col in range(8):
-                tile = board[row, col]
-                for child in node._children:
-                    if child.tile == tile:
-                        node = child
-                        break  # found an existing match
-                else:
-                    # no existing matches found so attach it
-                    # it already can't be a duplicate so stop here
-                    child = _DuplicateTree(tile)
-                    node.graft_child(child)
-                    return False
-        return True  # finally return True if all tiles were grafted previously
-
+def capture(board_string):
+    State.clear_duplicate_tree()
+    state = State(Board(board_string))
+    solution_sequence = list()
+    enough_turns = 20
+    for eot in state.end_of_turns(absolute_turn_depth=enough_turns):
+        if eot.parent.board.is_empty():
+            node = eot._node
+            while node:
+                if node.main.type == 'swap':
+                    solution_sequence.append(node.main.position_pair)
+                node = node.parent
+            break
+    State.clear_duplicate_tree()
+    return tuple(reversed(solution_sequence))
 
 
 if __name__ == '__main__':
