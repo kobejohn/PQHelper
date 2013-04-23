@@ -67,9 +67,9 @@ class Test_State(unittest.TestCase):
     # Customizable Class attributes
     def test_class_holds_references_to_classes_of_Tile_Board_and_Actor(self):
         try:
-            State.Tile
-            State.Board
-            State.Actor
+            getattr(State, 'Tile')
+            getattr(State, 'Board')
+            getattr(State, 'Actor')
         except Exception as e:
             self.fail('Expected to find classes for the parts that state'
                       ' uses but got this error: {}'.format(e))
@@ -99,8 +99,7 @@ class Test_State(unittest.TestCase):
     def test_end_of_turns_produces_exactly_EOTs_within_turn_depth(self):
         board = Board(self._board_string_two_paths)
         state = State(board)
-        eots = list(state.end_of_turns(absolute_turn_depth=1,
-                                       random_fill=False))
+        eots = list(state.end_of_turns(absolute_turn_depth=1))
         eot_board_strings = [str(eot.parent.board) for eot in eots]
         # confirm that the real boards match the specification
         # one is swap on left side, other is swap on right side
@@ -133,8 +132,7 @@ class Test_State(unittest.TestCase):
         state = State(board)
         turn_limit = 2
         # use list to make sure all the results are generated / sim is done
-        list(state.end_of_turns(absolute_turn_depth=2,
-                                random_fill=False))
+        list(state.end_of_turns(absolute_turn_depth=2))
         leaves = [node.main for node in state._node.leaves]
         for leaf in leaves:
             if isinstance(leaf, State):
@@ -147,8 +145,7 @@ class Test_State(unittest.TestCase):
         state = State(board)
         enough_turns_to_complete_either_side = 5
         eots = state.end_of_turns(absolute_turn_depth=
-                                  enough_turns_to_complete_either_side,
-                                  random_fill=False)
+                                  enough_turns_to_complete_either_side)
         eots = list(eots)
         board_sequence = [str(eot.parent.board) for eot in eots]
         # confirm that end of one set of actions comes before beginning of other
@@ -203,8 +200,7 @@ class Test_State(unittest.TestCase):
         state = State(board)
         enough_turns_to_go_beyond_filtered = 2
         eots = state.end_of_turns(absolute_turn_depth=
-                                  enough_turns_to_go_beyond_filtered,
-                                  random_fill=False)
+                                  enough_turns_to_go_beyond_filtered)
         eots = list(eots)
         # confirm that all results were filtered and tagged
         self.assertTrue(all(eot.type == 'filtered' for eot in eots))

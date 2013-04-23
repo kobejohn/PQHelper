@@ -48,11 +48,6 @@ class Tile(object):
     _random_distribution = list()
     for __tile_type, __weight in _random_weights.items():
         _random_distribution += (__tile_type,) * __weight
-    try:
-        del __tile_type
-        del __weight
-    except NameError:
-        pass
 
     def __init__(self, type_character):
         if type_character in self._all_types:
@@ -449,11 +444,11 @@ class Actor(object):
         self._name = name
 
     def consume_tiles(self, tile_groups):
-        """Apply the tiles to self and return an optional attack value.
+        """Apply the tiles to self and return an attack value.
 
         Stub for specific game types
         """
-        attack_value = 0
+        attack_value = 0  # stub
         return attack_value
 
     def apply_attack(self, attack_value):
@@ -498,6 +493,7 @@ class State(object):
     Tile = Tile
     Board = Board
     Actor = Actor
+    _random_fill = False
 
     def __init__(self, board=None, turn=1, actions_remaining=1,
                  player=None, opponent=None):
@@ -566,7 +562,7 @@ class State(object):
                 yield leaf.main
 
     # Core behavior
-    def end_of_turns(self, absolute_turn_depth=1, random_fill=False):
+    def end_of_turns(self, absolute_turn_depth=1):
         """Yield each qualifying EOT found within the tree rooted at self.
         Complete all and only simulation to EOT within absolute_turn_depth.
 
@@ -617,7 +613,7 @@ class State(object):
                 for swap_pair in state.board.potential_swaps():
                     result_board, destroyed_groups = \
                         state.board.execute_once(swap=swap_pair,
-                                                 random_fill=random_fill)
+                                                 random_fill=self._random_fill)
                     if destroyed_groups:
                         is_manadrain = False
                         break  # stop when the first valid swap found
@@ -634,7 +630,7 @@ class State(object):
             for swap_pair in state.board.potential_swaps():
                 result_board, destroyed_groups = \
                     state.board.execute_once(swap=swap_pair,
-                                             random_fill=random_fill)
+                                             random_fill=self._random_fill)
                 if not destroyed_groups:
                     continue  # discard this swap if it was invalid
                 # attach the transition
@@ -653,7 +649,8 @@ class State(object):
                                      player=state.player.copy(),
                                      opponent=state.opponent.copy())
                 # update the player and opponent
-                base_attack = result_state.active.consume_tiles(destroyed_groups)
+                base_attack = \
+                    result_state.active.consume_tiles(destroyed_groups)
                 result_state.passive.apply_attack(base_attack)
                 swap.attach(result_state)
                 # hook for capture game optimizations. does nothing in base
@@ -666,7 +663,7 @@ class State(object):
                 while potential_chain:
                     result_board, destroyed_groups = \
                         potential_chain.board.execute_once(random_fill=
-                                                           random_fill)
+                                                           self._random_fill)
                     # when chain reaction is done, submit it to the job stack
                     if not destroyed_groups:
                         # hook for capture game optimizations. no effect in base
@@ -677,7 +674,7 @@ class State(object):
                         ready_for_action_stack.append(potential_chain)
                         break
                     # attach the transition
-                    chain = ChainReaction()  #todo: fake singleton by attaching to class. same for EOT and Manadrain
+                    chain = ChainReaction()
                     potential_chain.attach(chain)
                     # attach the result state
                     if used_bonus_action:
@@ -694,7 +691,8 @@ class State(object):
                               player=potential_chain.player.copy(),
                               opponent=potential_chain.opponent.copy())
                     # update the player and opponent
-                    base_attack = result_state.active.consume_tiles(destroyed_groups)
+                    base_attack = \
+                        result_state.active.consume_tiles(destroyed_groups)
                     result_state.passive.apply_attack(base_attack)
                     chain.attach(result_state)
                     # prepare to try for another chain reaction
