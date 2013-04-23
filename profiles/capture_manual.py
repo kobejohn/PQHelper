@@ -56,6 +56,4 @@ easy = '''
 ....rr.r
 ..rryyry'''
 
-#todo: how much time spent in find_or_graft ?
-
 cProfile.run('test_solution(catapult)')

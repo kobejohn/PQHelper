@@ -610,7 +610,7 @@ class State(object):
             #  Begin atomic changes
             # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-            # handle states that are end of turn
+            # handle states that are ready but have no actions remaining
             if state.actions_remaining <= 0:
                 # determine if this is a manadrain or just end of turn
                 is_manadrain = True
@@ -641,9 +641,9 @@ class State(object):
                 swap = Swap(swap_pair)
                 state.attach(swap)
                 # attach the result state
-                used_bonus_action = False
                 bonus_action = any(len(group) >= 4
                                    for group in destroyed_groups)
+                used_bonus_action = False
                 if bonus_action:
                     used_bonus_action = True
                 result_state = State(board=result_board,
@@ -656,7 +656,7 @@ class State(object):
                 base_attack = result_state.active.consume_tiles(destroyed_groups)
                 result_state.passive.apply_attack(base_attack)
                 swap.attach(result_state)
-                # hook for capture game optimizations
+                # hook for capture game optimizations. does nothing in base
                 if self._disallow_state(state):
                     filtered = Filtered()
                     result_state.attach(filtered)
@@ -669,7 +669,7 @@ class State(object):
                                                            random_fill)
                     # when chain reaction is done, submit it to the job stack
                     if not destroyed_groups:
-                        # hook for special game behavior
+                        # hook for capture game optimizations. no effect in base
                         if self._disallow_state(potential_chain):
                             filtered = Filtered()
                             potential_chain.attach(filtered)
@@ -677,7 +677,7 @@ class State(object):
                         ready_for_action_stack.append(potential_chain)
                         break
                     # attach the transition
-                    chain = ChainReaction()
+                    chain = ChainReaction()  #todo: fake singleton by attaching to class. same for EOT and Manadrain
                     potential_chain.attach(chain)
                     # attach the result state
                     if used_bonus_action:
