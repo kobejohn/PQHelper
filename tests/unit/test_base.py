@@ -2,12 +2,58 @@ import unittest
 
 from mock import patch
 
-from pqhelper.base import State
+from pqhelper.base import State, Actor
 from pqhelper.base import _Transition, Swap, ChainReaction, EOT, ManaDrain
 from pqhelper.base import Board, Tile
 
 
-class Test_Base_State(unittest.TestCase):
+class Test_Actor(unittest.TestCase):
+    def test___init___default_name_is_player(self):
+        actor = Actor()
+        self.assertEqual(actor.name, 'player')
+
+    def test___init___accepts_name_of_player_or_opponent(self):
+        try:
+            player = Actor('player')
+            opponent = Actor('opponent')
+        except Exception as e:
+            self.fail('Expected creation of actors with names player and'
+                      'nopponent to work but got this error:\n{}'.format(e))
+        self.assertEqual(player.name, 'player')
+        self.assertEqual(opponent.name, 'opponent')
+
+    def test___init___raises_ValueError_if_name_not_valid(self):
+        invalid_name = 'invalid'
+        self.assertRaises(ValueError, Actor, **{'name': invalid_name})
+
+    def test_copy_returns_a_new_actor_with_the_same_name(self):
+        actor_name_spec = 'opponent'
+        actor = Actor(actor_name_spec)
+        actor_copy = actor.copy()
+        self.assertIsNot(actor_copy, actor)
+        self.assertEqual(actor_copy.name, actor_name_spec)
+
+    def test_consume_tiles_is_a_placeholder_in_base_class(self):
+        actor = Actor()
+        skull = Tile('s')
+        tile_groups = [[skull, skull, skull]]
+        try:
+            actor.consume_tiles(tile_groups)
+        except Exception as e:
+            self.fail('Expected consume_tiles to run with no problems'
+                      ' but got this exception:\n{}'.format(e))
+
+    def test_apply_attack_is_a_placeholder_in_base_class(self):
+        actor = Actor()
+        any_attack_value = 10
+        try:
+            actor.apply_attack(any_attack_value)
+        except Exception as e:
+            self.fail('Expected apply_attack to run with no problems'
+                      ' but got this exception:\n{}'.format(e))
+
+
+class Test_State(unittest.TestCase):
     # Test Parameters
     _board_string_two_paths = '........\n' \
                               '........\n' \
@@ -18,31 +64,36 @@ class Test_Base_State(unittest.TestCase):
                               'xg....gx\n' \
                               'rsrryysy'
 
-    # Instantiaion
-    def test___init___default_board_is_empty(self):
-        state = State()
-        self.assertTrue(state.board.is_empty())
+    # Customizable Class attributes
+    def test_class_holds_references_to_classes_of_Tile_Board_and_Actor(self):
+        try:
+            State.Tile
+            State.Board
+            State.Actor
+        except Exception as e:
+            self.fail('Expected to find classes for the parts that state'
+                      ' uses but got this error: {}'.format(e))
 
+    # Instantiaion
     def test___init___accepts_optional_board(self):
         board = Board(self._board_string_two_paths)
         state = State(board=board)
         self.assertEqual(str(state.board), self._board_string_two_paths)
 
-    def test___init___default_turn_is_1(self):
-        state = State()
-        self.assertEqual(state.turn, 1)
-
     def test___init___accepts_optional_turn(self):
         state = State(turn=2)
         self.assertEqual(state.turn, 2)
 
-    def test___init___default_actions_remaining_is_1(self):
-        state = State()
-        self.assertEqual(state.actions_remaining, 1)
-
     def test___init___accepts_optional_actions_remaining(self):
         state = State(actions_remaining=2)
         self.assertEqual(state.actions_remaining, 2)
+
+    def test___init___accepts_optional_player_and_opponent(self):
+        try:
+            State(player='player', opponent='opponent')
+        except Exception as e:
+            self.fail('Expected to be able to provide player and opponent'
+                      ' arguments but got this error:\n{}'.format(e))
 
     # Generating end_of_turns (core behavior)
     def test_end_of_turns_produces_exactly_EOTs_within_turn_depth(self):
@@ -158,6 +209,34 @@ class Test_Base_State(unittest.TestCase):
         # confirm that all results were filtered and tagged
         self.assertTrue(all(eot.type == 'filtered' for eot in eots))
 
+    def test_active_passive_are_player_opponent_for_even_and_vice_versa(self):
+        chain_reaction_first = '........\n' \
+                               '........\n' \
+                               '........\n' \
+                               '........\n' \
+                               '.......r\n' \
+                               '.......s\n' \
+                               '......xs\n' \
+                               '...xxrsr'
+        player = Actor('player')
+        opponent = Actor('opponent')
+        root = State(Board(chain_reaction_first),
+                     player=player, opponent=opponent)
+        # get the end of turn with empty board (chain reaction + second swap)
+        enough_turns = 3
+        list(root.end_of_turns(enough_turns))
+        # confirm that each state has the appropriate active actor
+        for node in root._node.in_order_nodes:
+            if node.main.type != 'state':
+                continue
+            state = node.main
+            if state.turn % 2:  # odd
+                self.assertEqual(state.active.name, 'player')
+                self.assertEqual(state.passive.name, 'opponent')
+            else:  # even
+                self.assertEqual(state.active.name, 'opponent')
+                self.assertEqual(state.passive.name, 'player')
+
     # Convenience methods
     def test__leaves_within_depth_produces_exactly_leaves_within_depth(self):
         depth = 2
@@ -197,6 +276,10 @@ class Test_Base_State(unittest.TestCase):
         parent_id = id(state.parent)
         parent_id_spec = id(transition)
         self.assertEqual(parent_id, parent_id_spec)
+
+    def test_parent_provides_None_if_no_parent(self):
+        state = State()
+        self.assertIsNone(state.parent)
 
     # Special methods
     def test___str___shows_the_core_data_of_state_and_number_of_children(self):
@@ -301,6 +384,10 @@ class Test_Transitions(unittest.TestCase):
         parent_id_spec = id(state)
         self.assertEqual(parent_id, parent_id_spec)
 
+    def test_parent_provides_None_if_no_parent(self):
+        transition = _Transition()
+        self.assertIsNone(transition.parent)
+
     def test_Swap_type_name_is_swap(self):
         swap = Swap(((0, 0), (0, 1)))
         self.assertEqual(swap.type, 'swap')
@@ -323,7 +410,7 @@ class Test_Transitions(unittest.TestCase):
         self.assertEqual(manadrain.type, 'mana drain')
 
 
-class Test_Base_Board(unittest.TestCase):
+class Test_Board(unittest.TestCase):
     # Test Parameters
     _board_string_all_tiles = 'rgby....\n' \
                               '.xm.....\n' \
@@ -351,6 +438,14 @@ class Test_Base_Board(unittest.TestCase):
                                     'S......s\n' \
                                     'S......s\n' \
                                     'rs...rsr'
+
+    # Customizable Class attributes
+    def test_class_holds_references_to_classes_of_Tile_Board_and_Actor(self):
+        try:
+            Board.Tile
+        except Exception as e:
+            self.fail('Expected to find classes for the parts that board'
+                      ' uses but got this error: {}'.format(e))
 
     # Instance creation
     def test___init___default_is_empty_board(self):
@@ -879,7 +974,7 @@ class Test_Base_Board(unittest.TestCase):
         self.assertEqual(str(board), self._board_string_all_tiles)
 
 
-class Test_Base_Tile(unittest.TestCase):
+class Test_Tile(unittest.TestCase):
     # Test Parameters
     _color_types_spec = ('r', 'g', 'b', 'y')
     _wildcard_types_spec = tuple(str(x) for x in range(2, 10))

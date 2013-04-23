@@ -1,6 +1,22 @@
 import unittest
 
-from pqhelper.capture import State, Board
+from pqhelper.capture import _State as State, _Board as Board, capture
+
+
+class Test_capture(unittest.TestCase):
+    def test_capture_on_easy_board_returns_correct_solution(self):
+        board_string = '........\n' \
+                       '........\n' \
+                       '........\n' \
+                       '........\n' \
+                       '.......x\n' \
+                       '....xx.r\n' \
+                       '....rr.r\n' \
+                       '..rryyry'
+        solution = capture(board_string)
+        # confirm that the solution matches the specification
+        solution_spec = (((7, 6), (7, 7)), ((7, 6), (7, 7)))
+        self.assertSequenceEqual(solution, solution_spec)
 
 
 class Test_Capture_State(unittest.TestCase):

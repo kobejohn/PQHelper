@@ -1,10 +1,6 @@
 from pqhelper import base as _base
 
 
-class Board(_base.Board):
-    pass  # no changes
-
-
 class _DuplicateTree(_base.TreeNode):
     def __init__(self, tile=None):
         super(_DuplicateTree, self).__init__(tile=tile)
@@ -29,7 +25,7 @@ class _DuplicateTree(_base.TreeNode):
         return True  # finally return True if all tiles were grafted previously
 
 
-class State(_base.State):
+class _State(_base.State):
     __duplicate_root = _DuplicateTree()
 
     @classmethod
@@ -49,7 +45,7 @@ class State(_base.State):
     def __impossible_by_count(self, state):
         """Disallow any board that has insufficient tile count to solve."""
         # count all the tile types and name them for readability
-        counts = {tile_type: 0 for tile_type in _base.Tile._all_types}
+        counts = {tile_type: 0 for tile_type in self.Tile._all_types}
         standard_wildcard_type = '2'
         for p in state.board.positions():
             # count all wildcards as one value
@@ -84,9 +80,16 @@ class State(_base.State):
         return False
 
 
+_Board = _State.Board  # convenience access to Board
+
+
 def capture(board_string):
-    State.clear_duplicate_tree()
-    state = State(Board(board_string))
+    """Try to solve the board described by board_string.
+
+    Return tuple of swaps in the order required to solve the board.
+    """
+    _State.clear_duplicate_tree()
+    state = _State(_Board(board_string))
     solution_sequence = list()
     enough_turns = 20
     for eot in state.end_of_turns(absolute_turn_depth=enough_turns):
@@ -97,7 +100,7 @@ def capture(board_string):
                     solution_sequence.append(node.main.position_pair)
                 node = node.parent
             break
-    State.clear_duplicate_tree()
+    _State.clear_duplicate_tree()
     return tuple(reversed(solution_sequence))
 
 
