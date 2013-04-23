@@ -670,9 +670,9 @@ class State(object):
                     # when chain reaction is done, submit it to the job stack
                     if not destroyed_groups:
                         # hook for special game behavior
-                        if self._disallow_state(state):
+                        if self._disallow_state(potential_chain):
                             filtered = Filtered()
-                            result_state.attach(filtered)
+                            potential_chain.attach(filtered)
                             break  # no more simulation for this filtered state
                         ready_for_action_stack.append(potential_chain)
                         break
@@ -696,7 +696,7 @@ class State(object):
                     # update the player and opponent
                     base_attack = result_state.active.consume_tiles(destroyed_groups)
                     result_state.passive.apply_attack(base_attack)
-                    swap.attach(result_state)
+                    chain.attach(result_state)
                     # prepare to try for another chain reaction
                     potential_chain = result_state
             #at this point all swaps have been tried
