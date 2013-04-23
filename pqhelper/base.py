@@ -12,6 +12,7 @@ class Tile(object):
                   's', '*',            # skulls
                   'x', 'm', '.',       # experience, money, blank
                   '2', '3', '4', '5', '6', '7', '8', '9')  # wildcards
+
     _matches = {'.': tuple(),  # blank matches nothing
                 'r': ('r', '2', '3', '4', '5', '6', '7', '8', '9'),
                 'g': ('g', '2', '3', '4', '5', '6', '7', '8', '9'),
@@ -37,6 +38,7 @@ class Tile(object):
                       '2', '3', '4', '5', '6', '7', '8', '9'),
                 '9': ('r', 'g', 'b', 'y',
                       '2', '3', '4', '5', '6', '7', '8', '9')}
+
     _random_weights = {'r': 2,
                        'g': 2,
                        'b': 2,
@@ -48,6 +50,8 @@ class Tile(object):
     _random_distribution = list()
     for __tile_type, __weight in _random_weights.items():
         _random_distribution += (__tile_type,) * __weight
+
+    _singletons = dict()
 
     def __init__(self, type_character):
         if type_character in self._all_types:
@@ -100,6 +104,14 @@ class Tile(object):
     def is_color(self):
         return self._type in ('r', 'g', 'b', 'y')
 
+    @classmethod
+    def singleton(cls, tile_type):
+        try:
+            tile = cls._singletons[tile_type]
+        except KeyError:
+            tile = cls._singletons[tile_type] = cls(tile_type)
+        return tile
+
 
 class Board(object):
     """Behaves like a PQ board."""
@@ -111,12 +123,12 @@ class Board(object):
         grid_shape = (8, 8)
         self._array = numpy.ndarray(shape=grid_shape, dtype=object)
         if board_string is None:
-            blank = self.Tile('.')
+            blank = self.Tile.singleton('.')
             self._array.fill(blank)
         else:
             for row, row_string in enumerate(board_string.split()):
                 for col, tile_character in enumerate(row_string):
-                    self._array[row, col] = self.Tile(tile_character)
+                    self._array[row, col] = self.Tile.singleton(tile_character)
 
     # Execution Methods (Core behavior)
     def execute_once(self, swap=None,
@@ -265,7 +277,7 @@ class Board(object):
         and return all destroyed groups."""
         target_position_groups = list(target_position_groups)  # work on a copy
         destroyed_tile_groups = list()
-        blank = self.Tile('.')
+        blank = self.Tile.singleton('.')
         a = self._array
         while target_position_groups:  # continue as long as more targets exist
             # delay actual clearing of destroyed tiles until all claiming

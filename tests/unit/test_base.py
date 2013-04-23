@@ -941,9 +941,7 @@ class Test_Board(unittest.TestCase):
     def test_copy_returns_a_board_with_a_different_underlying_array(self):
         b1 = Board()
         b2 = b1.copy()
-        for p in b1.positions():
-            tile_1, tile_2 = b1[p], b2[p]
-            self.assertIsNot(tile_1, tile_2)
+        self.assertIsNot(b1._array, b2._array)
 
     def test_positions_provides_8x8_positions_as_row_column_tuples(self):
         board = Board()
