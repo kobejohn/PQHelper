@@ -72,6 +72,10 @@ class _Actor(_base.Actor):
         """
         self.health -= attack_value
 
+    def apply_manadrain(self):
+        """Clear mana."""
+        self.r, self.g, self.b, self.y = 0, 0, 0, 0
+
 
 class _State(_base.State):
     _use_random_fill = True
@@ -116,8 +120,7 @@ def realistic_choices(root):
         # so put the most realistic result of this EOT on the parent's list
         realistic_results_by_EOT.setdefault(parent,
                                             list()).append(realistic_result)
-    root_results = realistic_results_by_EOT[None]  # get the root's results
-    return sorted(root_results, reverse=True)
+    return realistic_results_by_EOT[None]  # return the root's results
 
 
 def _summarize_eot(eot):

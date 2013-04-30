@@ -479,6 +479,10 @@ class Actor(object):
         setattr(self, internal_max_name, max_)
         setattr(self, name, current)
 
+    def apply_manadrain(self):
+        """Implement this for manadrain effects."""
+        pass
+
     def _parse_actor_string(self, s):
         """Return the parts of an actor string
 
@@ -683,6 +687,8 @@ class State(object):
                 # attach appropriate EOT or ManaDrain
                 if is_manadrain:
                     end = ManaDrain()
+                    state.player.apply_manadrain()
+                    state.opponent.apply_manadrain()
                 else:
                     end = EOT()
                     ready_for_action_stack.append(end)
@@ -767,6 +773,8 @@ class State(object):
             if not tuple(state.children()):
                 manadrain = ManaDrain()
                 state.attach(manadrain)
+                state.player.apply_manadrain()
+                state.opponent.apply_manadrain()
                 yield manadrain  # manadrain is a type of end of turn
                 continue  # no further simulation for this state
             # handle spells only if this was not a manadrain

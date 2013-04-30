@@ -117,6 +117,38 @@ class Test_Simulation(unittest.TestCase):
         number_of_possibilities_after_2_turns = 3 * 2
         self.assertEqual(len(leaves), number_of_possibilities_after_2_turns)
 
+    def test_manadrain_states_reset_the_actor_mana_only(self):
+        manadrain_string = '........\n' \
+                           '........\n' \
+                           '........\n' \
+                           '........\n' \
+                           '........\n' \
+                           '........\n' \
+                           '........\n' \
+                           '....r...'
+        non_zero_actor_string = '{}\n' \
+                                'health: 50/100\n' \
+                                'r: 10/20\n' \
+                                'g: 10/20\n' \
+                                'b: 10/20\n' \
+                                'y: 10/20'
+        player_string = non_zero_actor_string.format('player')
+        opponent_string = non_zero_actor_string.format('opponent')
+        turn_limit = 1
+        root = _create_simulation_root(manadrain_string,
+                                       player_string=player_string,
+                                       opponent_string=opponent_string)
+        _expand_simulation(root, turn_limit)
+        player = root.player
+        opponent = root.opponent
+        # confirm zeroing of mana
+        for mana in ('r', 'g', 'b', 'y'):
+            self.assertEqual(getattr(player, mana), 0)
+            self.assertEqual(getattr(opponent, mana), 0)
+        # confirm non-zeroing of health
+        self.assertGreater(getattr(player, 'health'), 0)
+        self.assertGreater(getattr(opponent, 'health'), 0)
+
 
 if __name__ == '__main__':
     unittest.main()
