@@ -1159,37 +1159,47 @@ class Test_Tile(unittest.TestCase):
             self.assertAlmostEqual(tile_count, tile_count_spec, delta=delta)
 
     # Convenient methods
-    def test_is_skullbomb_for_a_skullbomb_returns_True(self):
+    def test_is_experience_returns_true_for_experience_only(self):
+        experience = Tile('x')
+        self.assertTrue(experience.is_experience())
+        # confirm failure of wrong types
+        skull = Tile('s')
+        self.assertFalse(skull.is_experience())
+
+    def test_is_money_returns_true_for_money_only(self):
+        money = Tile('m')
+        self.assertTrue(money.is_money())
+        # confirm failure of wrong types
+        skull = Tile('s')
+        self.assertFalse(skull.is_money())
+
+    def test_is_skullbomb_returns_true_for_skullbomb_only(self):
         skullbomb = Tile('*')
         self.assertTrue(skullbomb.is_skullbomb())
-
-    def test_is_skullbomb_for_a_non_skullbomb_returns_False(self):
+        # confirm failure of wrong types
         skull = Tile('s')
         self.assertFalse(skull.is_skullbomb())
 
-    def test_is_blank_for_a_blank_returns_True(self):
+    def test_is_blank_returns_true_for_blank_only(self):
         blank = Tile('.')
         self.assertTrue(blank.is_blank())
-
-    def test_is_blank_for_a_non_blank_returns_False(self):
+        # confirm failure of wrong types
         skull = Tile('s')
         self.assertFalse(skull.is_blank())
 
-    def test_is_wildcard_for_a_wildcard_returns_True(self):
+    def test_is_wildcard_returns_true_for_wildcard_only(self):
         wildcards = (Tile(str(x)) for x in range(2, 10))
         for wildcard in wildcards:
             self.assertTrue(wildcard.is_wildcard())
-
-    def test_is_wildcard_for_a_non_wildcard_returns_False(self):
+        # confirm failure of wrong types
         skull = Tile('s')
         self.assertFalse(skull.is_wildcard())
 
-    def test_is_color_for_a_color_returns_True(self):
+    def test_is_color_returns_true_for_color_only(self):
         colors = (Tile(c) for c in ('r', 'g', 'b', 'y'))
         for color in colors:
             self.assertTrue(color.is_color())
-
-    def test_is_color_for_a_non_color_returns_False(self):
+        # confirm failure of wrong types
         skull = Tile('s')
         self.assertFalse(skull.is_color())
 

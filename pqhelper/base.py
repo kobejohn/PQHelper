@@ -89,6 +89,12 @@ class Tile(object):
         return not (self == other)
 
     # Convenience methods
+    def is_experience(self):
+        return True if self._type == 'x' else False
+
+    def is_money(self):
+        return True if self._type == 'm' else False
+
     def is_skullbomb(self):
         return True if self._type == '*' else False
 
