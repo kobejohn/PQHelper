@@ -3,12 +3,9 @@ from pqhelper import base as _base
 
 class _Actor(_base.Actor):
     def __init__(self, name=None, health=100, r=0, g=0, b=0, y=0):
-        super(_Actor, self).__init__(name=name)
+        super(_Actor, self).__init__(name=name or 'player')
         self.health = health
-        self.r = r
-        self.g = g
-        self.b = b
-        self.y = y
+        self.r, self.g, self.b, self.y = r, g, b, y
         self._attributes_to_copy.extend(('health', 'r', 'g', 'b', 'y'))
 
     def score_eot(self, eot):
@@ -153,11 +150,14 @@ def _summarize_root_action(eot):
 
 
 def _create_simulation_root(board_string,
-                            player_string=None, opponent_string=None):
+                            p_health=100, p_r=0, p_g=0, p_b=0, p_y=0,
+                            o_health=100, o_r=0, o_g=0, o_b=0, o_y=0):
     """Create the root to be used in building the simulation tree."""
     board = _State.Board(board_string)
-    player = _State.Actor(player_string or 'player')
-    opponent = _State.Actor(opponent_string or 'opponent')
+    player = _State.Actor(name='player',
+                          health=p_health, r=p_r, g=p_g, b=p_b, y=p_y)
+    opponent = _State.Actor(name='opponent',
+                            health=o_health, r=o_r, g=o_g, b=o_b, y=o_y)
     return _State(board=board,
                   turn=1, actions_remaining=1,
                   player=player, opponent=opponent)
