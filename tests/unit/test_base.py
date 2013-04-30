@@ -12,7 +12,7 @@ class Test_Actor(unittest.TestCase):
         actor = Actor()
         self.assertEqual(actor.name, 'player')
 
-    def test___init___accepts_name_of_player_or_opponent(self):
+    def test___init___accepts_name_of_player_or_opponent_as_actor_string(self):
         try:
             player = Actor('player')
             opponent = Actor('opponent')
@@ -23,15 +23,67 @@ class Test_Actor(unittest.TestCase):
         self.assertEqual(opponent.name, 'opponent')
 
     def test___init___raises_ValueError_if_name_not_valid(self):
-        invalid_name = 'invalid'
-        self.assertRaises(ValueError, Actor, **{'name': invalid_name})
+        actor_string_with_invalid_name = 'invalid'
+        self.assertRaises(ValueError, Actor, actor_string_with_invalid_name)
 
-    def test_copy_returns_a_new_actor_with_the_same_name(self):
-        actor_name_spec = 'opponent'
-        actor = Actor(actor_name_spec)
+    def test___init___accepts_attribute_name_current_max_in_actor_string(self):
+        actor_string = 'player\n' \
+                       'health: 100/1000\n' \
+                       'r: 0/1'
+        actor = Actor(actor_string)
+        # confirm name, current, (max is specified elsewhere)
+        name_current_spec = [('r', 0), ('health', 100)]
+        for name_spec, current_spec in name_current_spec:
+            # confirm name
+            try:
+                current = getattr(actor, name_spec)
+            except Exception as e:
+                self.fail('Expected actor to have {} attribute but got'
+                          ' this error:\n{}'.format(name_spec, e))
+            # confirm current
+            self.assertEqual(current, current_spec,
+                             'Expected {} to be {} but got {}'
+                             ''.format(name_spec, current_spec, current))
+
+    def test___init___raises_ValueError_for_invalid_name_current_max(self):
+        # combined specification for simplicity
+        # confirm negative current
+        negative_current = 'player\n' \
+                           'negative_current: -1/1'
+        # confirm negative max
+        negative_max = 'player\n' \
+                       'negative_max: 0/-1'
+        for bad_actor_string in (negative_current, negative_max):
+            self.assertRaises(ValueError, Actor, bad_actor_string)
+
+    def test_attributes_set_by_actor_string_are_bound_by_0_and_given_max(self):
+        actor_string = 'player\n' \
+                       'r: 0/10'
+        lower_limit_spec = 0
+        upper_limit_spec = 10
+        actor = Actor(actor_string)
+        # confirm max limit
+        actor.r = 100
+        self.assertEqual(actor.r, upper_limit_spec)
+        # confirm zero limit
+        actor.r = -10
+        self.assertEqual(actor.r, lower_limit_spec)
+
+    def test_copy_with_valid_actor_string_reproduces_all_attributes(self):
+        actor_string = 'player\n' \
+                       'r: 0/1\n' \
+                       'health: 100/1000'
+        name_spec = 'player'
+        r_spec = (0, 1)
+        health_spec = (100, 1000)
+        actor = Actor(actor_string)
         actor_copy = actor.copy()
-        self.assertIsNot(actor_copy, actor)
-        self.assertEqual(actor_copy.name, actor_name_spec)
+        name = actor.name
+        r = (actor_copy.r, actor_copy._r_max)
+        health = (actor_copy.health, actor_copy._health_max)
+        self.assertEqual(name, name_spec)
+        self.assertEqual(r, r_spec)
+        self.assertEqual(health, health_spec)
 
     def test_consume_tiles_is_a_placeholder_in_base_class(self):
         actor = Actor()

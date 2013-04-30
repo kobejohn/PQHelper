@@ -2,11 +2,17 @@ from pqhelper import base as _base
 
 
 class _Actor(_base.Actor):
-    def __init__(self, name=None, health=100, r=0, g=0, b=0, y=0):
-        super(_Actor, self).__init__(name=name or 'player')
-        self.health = health
-        self.r, self.g, self.b, self.y = r, g, b, y
-        self._attributes_to_copy.extend(('health', 'r', 'g', 'b', 'y'))
+    def __init__(self, actor_string=None, opponent=False):
+        name = 'opponent' if opponent else 'player'
+        actor_string = actor_string or '''
+                                       {}
+                                       health: 50/100
+                                       r: 0/20
+                                       g: 0/20
+                                       b: 0/20
+                                       y: 0/20
+                                       '''.format(name)
+        super(_Actor, self).__init__(actor_string=actor_string)
 
     def score_eot(self, eot):
         """Return a score for this end of turn based on how favorable it is
@@ -71,6 +77,13 @@ class _State(_base.State):
     _use_random_fill = True
     Actor = _Actor
 
+    def __str__(self):
+        base_str = super(_State, self).__str__()
+        lines = list()
+        lines.append(base_str)
+        lines.append(str(self.player))
+        lines.append(str(self.opponent))
+        return '\n'.join(lines)
 
 def realistic_choices(root):
     """Return a list of choices and the simulated final results of each choice,
@@ -150,14 +163,11 @@ def _summarize_root_action(eot):
 
 
 def _create_simulation_root(board_string,
-                            p_health=100, p_r=0, p_g=0, p_b=0, p_y=0,
-                            o_health=100, o_r=0, o_g=0, o_b=0, o_y=0):
+                            player_string=None, opponent_string=None):
     """Create the root to be used in building the simulation tree."""
     board = _State.Board(board_string)
-    player = _State.Actor(name='player',
-                          health=p_health, r=p_r, g=p_g, b=p_b, y=p_y)
-    opponent = _State.Actor(name='opponent',
-                            health=o_health, r=o_r, g=o_g, b=o_b, y=o_y)
+    player = _State.Actor(player_string)
+    opponent = _State.Actor(opponent_string, opponent=True)
     return _State(board=board,
                   turn=1, actions_remaining=1,
                   player=player, opponent=opponent)

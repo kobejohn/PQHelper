@@ -85,8 +85,8 @@ class Test_Simulation(unittest.TestCase):
     def test__create_simulation_root_accepts_optional_player_and_opponent(self):
         try:
             _create_simulation_root(self.board_string_3_valid_swaps,
-                                    p_health=1, p_r=1, p_g=1, p_b=1, p_y=1,
-                                    o_health=1, o_r=1, o_g=1, o_b=1, o_y=1)
+                                    player_string='player',
+                                    opponent_string='opponent')
         except Exception as e:
             self.fail('Expected creation with player and opponent strings'
                       ' to work but got this exception:\n{}'.format(e))

@@ -454,14 +454,52 @@ class Board(object):
 
 
 class Actor(object):
-    _attributes_to_copy = ['name']
-
-    def __init__(self, name='player'):
+    def __init__(self, actor_string='player'):
+        name, attr_current_max_sets = self._parse_actor_string(actor_string)
+        # apply name
         if not name in ('player', 'opponent'):
             raise ValueError('Expected name to be "player" or "opponent"')
         self._name = name
+        # apply attributes with current and max
+        self._attributes_to_copy = list()
+        for name, current, max_ in attr_current_max_sets:
+            self._set_property_current_max(name, current, max_)
+            self._attributes_to_copy.append(name)
 
-    def consume_tile_groups(self, tile_groups):
+    def _set_property_current_max(self, name, current, max_):
+        internal_name = '_' + name
+        internal_max_name = internal_name + '_max'
+        # create and apply the attribute as a property with set limits
+        fget = lambda self_: getattr(self_, internal_name)
+        fset = lambda self_, value:\
+            setattr(self_, internal_name,
+                    max(0, min(value, getattr(self, internal_max_name))))
+        setattr(self.__class__, name, property(fget=fget, fset=fset))
+        # set the current and max values
+        setattr(self, internal_max_name, max_)
+        setattr(self, name, current)
+
+    def _parse_actor_string(self, s):
+        """Return the parts of an actor string
+
+        name: string name of the actor
+        attr_current_maxes: list of tuples
+            - string attribute name
+            - non-negative integer current value
+            - non-negative integer max value
+        """
+        lines = s.strip().splitlines()
+        name = lines[0]
+        attr_current_maxes = list()
+        for line in lines[1:]:
+            attr, current_and_max = (x.strip() for x in line.split(':'))
+            current, max_ = (int(x.strip()) for x in current_and_max.split('/'))
+            if current < 0 or max_ < 0:
+                raise ValueError('current and max must be non-negative')
+            attr_current_maxes.append((attr, current, max_))
+        return name, attr_current_maxes
+
+    def apply_tile_groups(self, tile_groups):
         """Apply the tiles to self and return an attack value.
 
         Stub for specific game types
@@ -481,9 +519,16 @@ class Actor(object):
         return self._name
 
     def copy(self):
-        kwargs = {attr: getattr(self, attr) for attr
-                  in self._attributes_to_copy}
-        return self.__class__(**kwargs)
+        return self.__class__(str(self))
+
+    def __str__(self):
+        lines = [self.name]
+        for attr in self._attributes_to_copy:
+            max_attr = '_' + attr + '_max'
+            lines.append('{}: {}/{}'.format(attr,
+                                            getattr(self, attr),
+                                            getattr(self, max_attr)))
+        return '\n'.join(lines)
 
 
 class State(object):
