@@ -653,11 +653,11 @@ class State(object):
                 if last_state.turn + 1 > absolute_turn_depth:
                     continue
                 # the next turn is within the turn limit so simulate it
-                state = State(board=last_state.board.copy(),
-                              turn=last_state.turn + 1,
-                              actions_remaining=1,
-                              player=last_state.player.copy(),
-                              opponent=last_state.opponent.copy())
+                state = self.__class__(board=last_state.board.copy(),
+                                       turn=last_state.turn + 1,
+                                       actions_remaining=1,
+                                       player=last_state.player.copy(),
+                                       opponent=last_state.opponent.copy())
                 # attach the new turn to the previous turn
                 next_job.attach(state)
             else:
@@ -705,12 +705,13 @@ class State(object):
                 used_bonus_action = False
                 if bonus_action:
                     used_bonus_action = True
-                result_state = State(board=result_board,
-                                     turn=state.turn,
-                                     actions_remaining=
-                                     state.actions_remaining - 1 + bonus_action,
-                                     player=state.player.copy(),
-                                     opponent=state.opponent.copy())
+                result_state = self.__class__(board=result_board,
+                                              turn=state.turn,
+                                              actions_remaining=
+                                              state.actions_remaining
+                                              - 1 + bonus_action,
+                                              player=state.player.copy(),
+                                              opponent=state.opponent.copy())
                 # update the player and opponent
                 base_attack = \
                     result_state.active.consume_tile_groups(destroyed_groups)
@@ -747,12 +748,13 @@ class State(object):
                                            for group in destroyed_groups)
                         used_bonus_action = True
                     result_state = \
-                        State(board=result_board,
-                              turn=potential_chain.turn,
-                              actions_remaining=
-                              potential_chain.actions_remaining + bonus_action,
-                              player=potential_chain.player.copy(),
-                              opponent=potential_chain.opponent.copy())
+                        self.__class__(board=result_board,
+                                       turn=potential_chain.turn,
+                                       actions_remaining=
+                                       potential_chain.actions_remaining
+                                       + bonus_action,
+                                       player=potential_chain.player.copy(),
+                                       opponent=potential_chain.opponent.copy())
                     # update the player and opponent
                     base_attack = \
                         result_state.active.consume_tile_groups(destroyed_groups)
