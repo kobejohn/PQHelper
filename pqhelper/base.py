@@ -461,7 +461,7 @@ class Actor(object):
             raise ValueError('Expected name to be "player" or "opponent"')
         self._name = name
 
-    def consume_tiles(self, tile_groups):
+    def consume_tile_groups(self, tile_groups):
         """Apply the tiles to self and return an attack value.
 
         Stub for specific game types
@@ -668,7 +668,7 @@ class State(object):
                                      opponent=state.opponent.copy())
                 # update the player and opponent
                 base_attack = \
-                    result_state.active.consume_tiles(destroyed_groups)
+                    result_state.active.consume_tile_groups(destroyed_groups)
                 result_state.passive.apply_attack(base_attack)
                 swap.attach(result_state)
                 # hook for capture game optimizations. does nothing in base
@@ -710,7 +710,7 @@ class State(object):
                               opponent=potential_chain.opponent.copy())
                     # update the player and opponent
                     base_attack = \
-                        result_state.active.consume_tiles(destroyed_groups)
+                        result_state.active.consume_tile_groups(destroyed_groups)
                     result_state.passive.apply_attack(base_attack)
                     chain.attach(result_state)
                     # prepare to try for another chain reaction

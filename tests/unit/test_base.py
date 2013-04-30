@@ -38,9 +38,9 @@ class Test_Actor(unittest.TestCase):
         skull = Tile('s')
         tile_groups = [[skull, skull, skull]]
         try:
-            actor.consume_tiles(tile_groups)
+            actor.consume_tile_groups(tile_groups)
         except Exception as e:
-            self.fail('Expected consume_tiles to run with no problems'
+            self.fail('Expected consume_tile_groups to run with no problems'
                       ' but got this exception:\n{}'.format(e))
 
     def test_apply_attack_is_a_placeholder_in_base_class(self):
