@@ -89,8 +89,19 @@ class _State(_base.State):
         lines.append(str(self.opponent))
         return '\n'.join(lines)
 
-def realistic_choices(root):
-    """Return a list of choices and the simulated final results of each choice,
+
+def get_choice_summaries(board_string,
+                         player_string=None, opponent_string=None,
+                         turns_to_simulate=1):
+    root = _create_simulation_root(board_string, player_string, opponent_string)
+    _expand_simulation(root, turns=turns_to_simulate)
+    choices = _realistic_choices(root)
+    return sorted(choices,
+                  key=lambda summary: summary['overall_score'], reverse=True)
+
+
+def _realistic_choices(root):
+    """Return a list of summaries that describe each choice and its results,
     assuming that the player and opponent both make realistic choices
     along the way.
     """
@@ -109,7 +120,9 @@ def realistic_choices(root):
             realistic_results = [_summarize_eot(eot)]
         # get the most realistic result for this eot
         is_players_turn = eot.parent.active is eot.parent.player
-        realistic_result = sorted(realistic_results, reverse=is_players_turn)[0]
+        realistic_result = sorted(realistic_results,
+                                  key=lambda summary: summary['overall_score'],
+                                  reverse=is_players_turn)[0]
         # place the most realistic result on the parent EOT's list
         parent = eot.parent
         while parent:

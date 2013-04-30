@@ -1,7 +1,7 @@
 import unittest
 from mock import patch
 
-from pqhelper.versus import realistic_choices, _summarize_eot
+from pqhelper.versus import _realistic_choices, _summarize_eot
 from pqhelper.versus import _score_eot, _summarize_root_action
 from pqhelper.versus import _create_simulation_root, _expand_simulation
 
@@ -21,12 +21,12 @@ class Test_Scoring(unittest.TestCase):
         self.root = _create_simulation_root(self.board_string_3_valid_swaps)
 
     def test_realistic_choices_returns_an_empty_sequence_for_root_only(self):
-        choices = realistic_choices(self.root)
+        choices = _realistic_choices(self.root)
         self.assertSequenceEqual(choices, tuple())
 
     def test_realistic_choices_has_3_results(self):
         _expand_simulation(self.root, 1)
-        choices = realistic_choices(self.root)
+        choices = _realistic_choices(self.root)
         self.assertEqual(len(choices), 3)
 
     def test__summarize_eot_provides_required_items(self):
