@@ -714,7 +714,7 @@ class State(object):
                                               opponent=state.opponent.copy())
                 # update the player and opponent
                 base_attack = \
-                    result_state.active.consume_tile_groups(destroyed_groups)
+                    result_state.active.apply_tile_groups(destroyed_groups)
                 result_state.passive.apply_attack(base_attack)
                 swap.attach(result_state)
                 # hook for capture game optimizations. does nothing in base
@@ -757,7 +757,7 @@ class State(object):
                                        opponent=potential_chain.opponent.copy())
                     # update the player and opponent
                     base_attack = \
-                        result_state.active.consume_tile_groups(destroyed_groups)
+                        result_state.active.apply_tile_groups(destroyed_groups)
                     result_state.passive.apply_attack(base_attack)
                     chain.attach(result_state)
                     # prepare to try for another chain reaction

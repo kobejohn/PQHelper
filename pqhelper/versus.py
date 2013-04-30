@@ -23,7 +23,7 @@ class _Actor(_base.Actor):
         return sum((final_self.health,
                     final_self.r, final_self.g, final_self.b, final_self.y))
 
-    def consume_tile_groups(self, tile_groups):
+    def apply_tile_groups(self, tile_groups):
         """Apply the tiles to self and return an attack value."""
         attack_value = 0
         for tile_group in tile_groups:
