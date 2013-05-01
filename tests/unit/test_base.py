@@ -3,8 +3,11 @@ import unittest
 from mock import patch
 
 from pqhelper.base import State, Actor
-from pqhelper.base import _Transition, Swap, ChainReaction, EOT, ManaDrain
+from pqhelper.base import BaseTransition
+from pqhelper.base import Swap, ChainReaction, EOT, ManaDrain, Filtered
 from pqhelper.base import Board, Tile
+
+from pqhelper.base import TreeNode
 
 
 class Test_Actor(unittest.TestCase):
@@ -153,7 +156,7 @@ class Test_State(unittest.TestCase):
         for leaf in leaves:
             if isinstance(leaf, State):
                 self.assertLessEqual(leaf.turn, turn_limit)
-            elif isinstance(leaf, _Transition):
+            elif isinstance(leaf, BaseTransition):
                 self.assertLessEqual(leaf.parent.turn, turn_limit)
 
     def test_end_of_turns_produces_depth_before_breadth(self):
@@ -266,7 +269,7 @@ class Test_State(unittest.TestCase):
     # Tree behavior
     def test_attach_attaches_children(self):
         state = State()
-        transition = _Transition()
+        transition = BaseTransition()
         try:
             state.attach(transition)
         except Exception as e:
@@ -275,7 +278,7 @@ class Test_State(unittest.TestCase):
 
     def test_children_provides_children(self):
         state = State()
-        transition = _Transition()
+        transition = BaseTransition()
         state.attach(transition)
         children_ids = [id(child) for child in state.children()]
         children_ids_spec = [id(transition)]
@@ -283,7 +286,7 @@ class Test_State(unittest.TestCase):
 
     def test_parent_provides_parent(self):
         state = State()
-        transition = _Transition()
+        transition = BaseTransition()
         transition.attach(state)
         parent_id = id(state.parent)
         parent_id_spec = id(transition)
@@ -301,8 +304,8 @@ class Test_State(unittest.TestCase):
         actions_remaining = 3
         state = State(board=board, turn=turn,
                       actions_remaining=actions_remaining)
-        transition_1 = _Transition()
-        transition_2 = _Transition()
+        transition_1 = BaseTransition()
+        transition_2 = BaseTransition()
         state.attach(transition_1)
         state.attach(transition_2)
         state_string = str(state)
@@ -365,61 +368,41 @@ class Test_State(unittest.TestCase):
         return root_t1, leaves_within_2, leaves_below_2
 
 
+
+    # # Delegated tree behavior
+    # def attach(self, other):
+    #     """Attach other state or transition as a child to self."""
+    #     self._node.graft_child(other._node)
+    #
+    # def children(self):
+    #     """Return a tuple copy of the children in self."""
+    #     return tuple(child.main for child in self._node.children)
+    #
+    # @property
+    # def parent(self):
+    #     """Return the parent of self."""
+    #     try:
+    #         return self._node.parent.main
+    #     except AttributeError:  # no parent
+    #         return None
+
+
 class Test_Transitions(unittest.TestCase):
-    def test___init__gives_a_name_to_the_transition(self):
-        type_spec = 'test'
-        transition = _Transition(type_spec)
-        self.assertEqual(transition.type, type_spec)
+    def test_BaseTransition_is_instance_of_TreeNode_for_tree_behavior(self):
+        base_transition = BaseTransition()
+        self.assertIsInstance(base_transition, TreeNode)
 
-    def test_attach_attaches_children(self):
-        transition = _Transition()
-        state = State()
-        try:
-            transition.attach(state)
-        except Exception as e:
-            self.fail('Unexpected problem attaching a child to a transition:'
-                      '\n{}'.format(e))
-
-    def test_children_provides_children(self):
-        transition = _Transition()
-        state = State()
-        transition.attach(state)
-        children_ids = [id(child) for child in transition.children()]
-        children_ids_spec = [id(state)]
-        self.assertItemsEqual(children_ids, children_ids_spec)
-
-    def test_parent_provides_parent(self):
-        transition = _Transition()
-        state = State()
-        state.attach(transition)
-        parent_id = id(transition.parent)
-        parent_id_spec = id(state)
-        self.assertEqual(parent_id, parent_id_spec)
-
-    def test_parent_provides_None_if_no_parent(self):
-        transition = _Transition()
-        self.assertIsNone(transition.parent)
-
-    def test_Swap_type_name_is_swap(self):
-        swap = Swap(((0, 0), (0, 1)))
-        self.assertEqual(swap.type, 'swap')
-
-    def test_Swap___init___takes_a_pair_of_coordinates(self):
+    def test_Swap___init___takes_and_stores_a_position_pair(self):
         position_pair_spec = ((0, 0), (0, 1))
         swap = Swap(position_pair_spec)
         self.assertEqual(swap.position_pair, position_pair_spec)
 
-    def test_ChainReaction_type_name_is_chain_reaction(self):
-        chainreaction = ChainReaction()
-        self.assertEqual(chainreaction.type, 'chain reaction')
-
-    def test_EOT_type_name_is_eot(self):
-        eot = EOT()
-        self.assertEqual(eot.type, 'end of turn')
-
-    def test_ManaDrain_type_name_is_mana_drain(self):
-        manadrain = ManaDrain()
-        self.assertEqual(manadrain.type, 'mana drain')
+    def test_Swap_position_pair_is_read_only(self):
+        some_position_pair = ((0, 0), (0, 1))
+        another_position_pair = ((0, 0), (0, 1))
+        swap = Swap(some_position_pair)
+        self.assertRaises(AttributeError,
+                          setattr, swap, 'position_pair', another_position_pair)
 
 
 class Test_Board(unittest.TestCase):

@@ -761,37 +761,14 @@ class State(object):
         return str(self)
 
 
-class _Transition(object):
-    """Base class for all state-to-state transitions in a PQ simulation."""
-    def __init__(self, type_name='base transition'):
-        self._type = type_name
-        self._node = _SimNode(main=self)
-
-    @property
-    def type(self):
-        return self._type
-
-    # Delegated tree behavior
-    def attach(self, other):
-        """Attach other state or transition as a child to self."""
-        self._node.graft_child(other._node)
-
-    def children(self):
-        """Return a tuple copy of the children in self."""
-        return tuple(child.main for child in self._node.children)
-
-    @property
-    def parent(self):
-        """Return the parent of self."""
-        try:
-            return self._node.parent.main
-        except AttributeError:  # no parent
-            return None
+# Transitions
+class BaseTransition(TreeNode):
+    pass
 
 
-class Swap(_Transition):
+class Swap(BaseTransition):
     def __init__(self, position_pair):
-        super(Swap, self).__init__('swap')
+        super(Swap, self).__init__()
         self._position_pair = position_pair
 
     @property
@@ -799,31 +776,20 @@ class Swap(_Transition):
         return self._position_pair
 
 
-class ChainReaction(_Transition):
-    def __init__(self):
-        super(ChainReaction, self).__init__('chain reaction')
+class EOT(BaseTransition):
+    pass
 
 
-class EOT(_Transition):
-    def __init__(self, alternative_name=None):
-        name = alternative_name or 'end of turn'
-        super(EOT, self).__init__(name)
+class ManaDrain(BaseTransition):
+    pass
 
 
-class ManaDrain(EOT):
-    def __init__(self):
-        super(ManaDrain, self).__init__('mana drain')
+class ChainReaction(BaseTransition):
+    pass
 
 
-class Filtered(_Transition):
-    def __init__(self):
-        super(Filtered, self).__init__('filtered')
-
-
-class _SimNode(TreeNode):
-    """Provide node behavior for States and Transitions."""
-    def __init__(self, main):
-        super(_SimNode, self).__init__(main=main)
+class Filtered(BaseTransition):
+    pass
 
 
 if __name__ == "__main__":
