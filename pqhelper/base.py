@@ -98,6 +98,9 @@ class Tile(object):
     def is_skullbomb(self):
         return True if self._type == '*' else False
 
+    def is_skull(self):
+        return True if self._type == 's' else False
+
     def is_blank(self):
         return True if self._type == '.' else False
 

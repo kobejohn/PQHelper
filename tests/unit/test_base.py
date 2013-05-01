@@ -1232,6 +1232,13 @@ class Test_Tile(unittest.TestCase):
         skull = Tile('s')
         self.assertFalse(skull.is_skullbomb())
 
+    def test_is_skull_returns_true_for_skull_only(self):
+        skull = Tile('s')
+        self.assertTrue(skull.is_skull())
+        # confirm failure of wrong types
+        red = Tile('r')
+        self.assertFalse(red.is_skull())
+
     def test_is_blank_returns_true_for_blank_only(self):
         blank = Tile('.')
         self.assertTrue(blank.is_blank())
