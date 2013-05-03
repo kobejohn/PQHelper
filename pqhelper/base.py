@@ -55,6 +55,7 @@ class Tile(object):
     for __tile_type, __weight in _random_weights.items():
         _random_distribution += (__tile_type,) * __weight
 
+    # storage for class singletons
     _singletons = dict()
 
     def __init__(self, type_character):
