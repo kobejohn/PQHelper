@@ -11,6 +11,7 @@ class Tile(object):
     _all_types = ('r', 'g', 'b', 'y',  # colors
                   's', '*',            # skulls
                   'x', 'm', '.',       # experience, money, blank
+                  'h', 'c',            # anvil(h), scroll(c)
                   '2', '3', '4', '5', '6', '7', '8', '9')  # wildcards
 
     _matches = {'.': tuple(),  # blank matches nothing
@@ -22,6 +23,8 @@ class Tile(object):
                 '*': ('s', '*'),
                 'x': ('x',),
                 'm': ('m',),
+                'h': ('h',),
+                'c': ('c',),
                 '2': ('r', 'g', 'b', 'y',
                       '2', '3', '4', '5', '6', '7', '8', '9'),
                 '3': ('r', 'g', 'b', 'y',
@@ -124,22 +127,19 @@ class Tile(object):
 
 class Board(object):
     """Behaves like a PQ board."""
-    # Customizeable class attributes
-    Tile = Tile
-
     def __init__(self, board_string=None):
         # setup the core ndarray that stores the 8x8 grid of tiles
         grid_shape = (8, 8)
         self._array = numpy.ndarray(shape=grid_shape, dtype=object)
         if board_string is None:
-            blank = self.Tile.singleton('.')
+            blank = Tile.singleton('.')
             self._array.fill(blank)
         else:
             board_string = board_string.strip()
             for row, row_string in enumerate(board_string.split()):
                 row_string = row_string.strip()
                 for col, tile_character in enumerate(row_string):
-                    self._array[row, col] = self.Tile.singleton(tile_character)
+                    self._array[row, col] = Tile.singleton(tile_character)
 
     # Execution Methods (Core behavior)
     def execute_once(self, swap=None,
@@ -288,7 +288,7 @@ class Board(object):
         and return all destroyed groups."""
         target_position_groups = list(target_position_groups)  # work on a copy
         destroyed_tile_groups = list()
-        blank = self.Tile.singleton('.')
+        blank = Tile.singleton('.')
         a = self._array
         while target_position_groups:  # continue as long as more targets exist
             # delay actual clearing of destroyed tiles until all claiming
@@ -362,7 +362,7 @@ class Board(object):
         a = self._array
         for position in self.positions():
             if a[position].is_blank():
-                a[position] = self.Tile.random_tile()
+                a[position] = Tile.random_tile()
 
     # Special Methods
     def __str__(self):

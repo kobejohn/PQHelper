@@ -414,14 +414,6 @@ class Test_Board(unittest.TestCase):
                                     'S......s\n' \
                                     'rs...rsr'
 
-    # Customizable Class attributes
-    def test_class_holds_references_to_classes_of_Tile_Board_and_Actor(self):
-        try:
-            Board.Tile
-        except Exception as e:
-            self.fail('Expected to find classes for the parts that board'
-                      ' uses but got this error: {}'.format(e))
-
     # Instance creation
     def test___init___default_is_empty_board(self):
         board = Board()
@@ -952,7 +944,7 @@ class Test_Tile(unittest.TestCase):
     _color_types_spec = ('r', 'g', 'b', 'y')
     _wildcard_types_spec = tuple(str(x) for x in range(2, 10))
     _skull_types_spec = ('s', '*')
-    _unique_types_spec = ('x', 'm')
+    _unique_types_spec = ('x', 'm', 'h', 'c')
     _blank_type_spec = '.'
     _nonblank_types_spec = \
         _color_types_spec +\
@@ -1104,31 +1096,20 @@ class Test_Tile(unittest.TestCase):
                                  'Skullbomb should not match other ({0}) but'
                                  ' does.'.format(other_type))
 
-    def test_matches_for_experience_is_True_for_experience_only(self):
-        experience_type = 'x'
-        experience = Tile(experience_type)
-        for other_type in self._all_types_spec:
-            other = Tile(other_type)
-            if other_type == experience_type:
-                self.assertTrue(experience.matches(other),
-                                'Experience should match itself but does not.')
-            else:
-                self.assertFalse(experience.matches(other),
-                                 'Experience should not match other ({0})'
-                                 ' but does.'.format(other_type))
-                
-    def test_matches_for_money_is_True_for_money_only(self):
-        money_type = 'm'
-        money = Tile(money_type)
-        for other_type in self._all_types_spec:
-            other = Tile(other_type)
-            if other_type == money_type:
-                self.assertTrue(money.matches(other),
-                                'money should match itself but does not.')
-            else:
-                self.assertFalse(money.matches(other),
-                                 'money should not match other ({0})'
-                                 ' but does.'.format(other_type))
+    def test_matches_for_unique_types_is_True_for_same_type_only(self):
+        for tile_type in self._unique_types_spec:
+            tile = Tile(tile_type)
+            for other_type in self._all_types_spec:
+                other = Tile(other_type)
+                if other_type == tile_type:
+                    self.assertTrue(tile.matches(other),
+                                    'Unique tile ({}) should match itself but'
+                                    ' does not.'.format(tile_type))
+                else:
+                    self.assertFalse(tile.matches(other),
+                                     'Unique tile ({}) unexpectedly matched'
+                                     ' a different type ({})'
+                                     ''.format(tile_type, other_type))
 
     # Random Tiles
     def test_random_tile_provides_a_random_tile_according_to_distribution(self):
