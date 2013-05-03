@@ -1132,8 +1132,8 @@ class Test_Tile(unittest.TestCase):
 
     # Random Tiles
     def test_random_tile_provides_a_random_tile_according_to_distribution(self):
-        n = 10000  # size of sample for checking distribution
-        tolerance = 0.05  # i.e. 1% error tolerance
+        n = 1000  # size of sample for checking distribution
+        tolerance = 0.05  # i.e. 5% error tolerance
         delta = round(n * tolerance)
         weights = Tile._random_weights
         total_weight = sum(weights.values())
