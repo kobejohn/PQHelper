@@ -1007,6 +1007,15 @@ class Test_Tile(unittest.TestCase):
                         'invalid characters. Please fix the spec.')
         self.assertRaises(ValueError, Tile, inall_type)
 
+    def test_classmethod_singleton_produces_singletons_for_each_type(self):
+        for tile_type in self._all_types_spec:
+            tile_1 = Tile.singleton(tile_type)
+            tile_2 = Tile.singleton(tile_type)
+            self.assertIs(tile_1, tile_2,
+                          'singleton classmethod unexpectedly produced'
+                          ' different objects for the same type: {}'
+                          ''.format(tile_type))
+
     # Matching
     def test_matches_for_blank_is_False_for_all_types_including_blank(self):
         blank = Tile('.')
