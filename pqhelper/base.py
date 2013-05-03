@@ -135,7 +135,9 @@ class Board(object):
             blank = self.Tile.singleton('.')
             self._array.fill(blank)
         else:
+            board_string = board_string.strip()
             for row, row_string in enumerate(board_string.split()):
+                row_string = row_string.strip()
                 for col, tile_character in enumerate(row_string):
                     self._array[row, col] = self.Tile.singleton(tile_character)
 
