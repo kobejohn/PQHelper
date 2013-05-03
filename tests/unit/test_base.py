@@ -3,8 +3,7 @@ import unittest
 from mock import patch
 
 from pqhelper.base import State, Actor
-from pqhelper.base import BaseTransition
-from pqhelper.base import Swap, ChainReaction, EOT, ManaDrain, Filtered
+from pqhelper.base import BaseTransition, Swap, ChainReaction
 from pqhelper.base import Board, Tile
 
 from pqhelper.base import TreeNode
@@ -287,7 +286,7 @@ class Test_State(unittest.TestCase):
     def test_parent_provides_parent(self):
         state = State()
         transition = BaseTransition()
-        transition.attach(state)
+        transition.graft_child(state)
         parent_id = id(state.parent)
         parent_id_spec = id(transition)
         self.assertEqual(parent_id, parent_id_spec)
@@ -352,39 +351,20 @@ class Test_State(unittest.TestCase):
         root_t1.attach(c_transition_t1)
         root_t1.attach(d_transition_t1)
         # build level 2 (c and d are leaves)
-        a_transition_t1.attach(a_state_t2)
-        b_transition_t1.attach(b_state_t2)
-        c_transition_t1.attach(c_state_t2)
-        d_transition_t1.attach(d_state_t2)
+        a_transition_t1.graft_child(a_state_t2)
+        b_transition_t1.graft_child(b_state_t2)
+        c_transition_t1.graft_child(c_state_t2)
+        d_transition_t1.graft_child(d_state_t2)
         a_state_t2.attach(a_transition_t2)
         b_state_t2.attach(b_transition_t2)
         c_state_t2.attach(c_transition_t2)
         # build level 3 (a and b are leaves)
-        a_transition_t2.attach(a_state_t3)
-        b_transition_t2.attach(b_state_t3)
+        a_transition_t2.graft_child(a_state_t3)
+        b_transition_t2.graft_child(b_state_t3)
         a_state_t3.attach(a_transition_t3)
         leaves_within_2 = (c_transition_t2, d_state_t2)
         leaves_below_2 = (a_transition_t3, b_state_t3)
         return root_t1, leaves_within_2, leaves_below_2
-
-
-
-    # # Delegated tree behavior
-    # def attach(self, other):
-    #     """Attach other state or transition as a child to self."""
-    #     self._node.graft_child(other._node)
-    #
-    # def children(self):
-    #     """Return a tuple copy of the children in self."""
-    #     return tuple(child.main for child in self._node.children)
-    #
-    # @property
-    # def parent(self):
-    #     """Return the parent of self."""
-    #     try:
-    #         return self._node.parent.main
-    #     except AttributeError:  # no parent
-    #         return None
 
 
 class Test_Transitions(unittest.TestCase):

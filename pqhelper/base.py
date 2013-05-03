@@ -529,7 +529,7 @@ class State(object):
         self._actions_remaining = actions_remaining
         self.player = player or self.Actor('player')
         self.opponent = opponent or self.Actor('opponent')
-        self._node = _SimNode(self)
+
 
     # Core attributes
     @property
