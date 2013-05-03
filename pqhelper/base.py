@@ -42,12 +42,13 @@ class Tile(object):
                 '9': ('r', 'g', 'b', 'y',
                       '2', '3', '4', '5', '6', '7', '8', '9')}
 
+    # distribution used to generate a random tile
+    # keep computation simple by having no random skullbombs, wildcards, special
     _random_weights = {'r': 2,
                        'g': 2,
                        'b': 2,
                        'y': 2,
                        's': 2,
-                       '*': 1,  # i.e. skullbomb half as likely as others
                        'x': 2,
                        'm': 2}
     _random_distribution = list()
