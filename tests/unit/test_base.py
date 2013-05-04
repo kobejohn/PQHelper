@@ -1,47 +1,10 @@
 import unittest
 
-from mock import patch
-
 from pqhelper.base import State, Actor
-from pqhelper.base import BaseTransition, Swap, ChainReaction
+from pqhelper.base import BaseTransition, Swap
 from pqhelper.base import Board, Tile
 
 from pqhelper.base import TreeNode
-
-
-class Test_State(unittest.TestCase):
-    # Simulation tree behavior
-    def test_State_is_instance_of_TreeNode_for_tree_behavior(self):
-        state = generic_state()
-        self.assertIsInstance(state, TreeNode)
-
-    # Primary attributes
-    def test_State_has_a_board(self):
-        state = generic_state()
-        confirm_attribute(state, 'board')
-
-    def test_State_has_a_player_and_opponent(self):
-        # Combined spec for simplicity
-        state = generic_state()
-        confirm_attribute(state, 'player')
-        confirm_attribute(state, 'opponent')
-
-    def test_State_has_turn_and_actions_remaining(self):
-        # Combined spec for simplicity
-        state = generic_state()
-        confirm_attribute(state, 'turn')
-        confirm_attribute(state, 'actions_remaining')
-
-    # extra turn information
-    def test_for_odd_state_active_passive_is_player_opponent(self):
-        odd_state = generic_state(turn=3)
-        self.assertIs(odd_state.active, odd_state.player)
-        self.assertIs(odd_state.passive, odd_state.opponent)
-
-    def test_for_even_state_active_passive_is_opponent_player(self):
-        even_state = generic_state(turn=4)
-        self.assertIs(even_state.passive, even_state.player)
-        self.assertIs(even_state.active, even_state.opponent)
 
 
     # # Test Parameters
@@ -117,7 +80,7 @@ class Test_State(unittest.TestCase):
     #                               enough_turns_to_complete_either_side)
     #     eots = list(eots)
     #     board_sequence = [str(eot.parent.board) for eot in eots]
-    #     # confirm that end of one set of actions comes before beginning of other
+    #     # confirm end of one set of actions comes before beginning of other
     #     left_start = '........\n' \
     #                  '........\n' \
     #                  'g......g\n' \
@@ -180,7 +143,7 @@ class Test_State(unittest.TestCase):
     #     root, leaves_within_depth, leaves_below_depth \
     #         = self.produce_fake_simulation()
     #     leaf_ids = [id(leaf) for leaf in root._leaves_within_depth(depth)]
-    #     # Safety confirmation that there are some leaves below depth 2 to ignore
+    #     # Safety confirmation that there are leaves below depth 2 to ignore
     #     if not leaves_below_depth:
     #         self.fail('Expected to get a simulation with leaves below the'
     #                   ' target depth but did not.')
@@ -189,7 +152,7 @@ class Test_State(unittest.TestCase):
     #     self.assertItemsEqual(leaf_ids, leaf_ids_spec)
     #
     # # Special methods
-    # def test___str___shows_the_core_data_of_state_and_number_of_children(self):
+    # def test___str___shows_the_core_data_and_number_of_children(self):
     #     board_string_spec = self._board_string_two_paths
     #     board = Board(board_string_spec)
     #     turn = 2
@@ -275,7 +238,39 @@ class Test_State(unittest.TestCase):
 
 
 
+class Test_State(unittest.TestCase):
+    # Simulation tree behavior
+    def test_State_is_instance_of_TreeNode_for_tree_behavior(self):
+        state = generic_state()
+        self.assertIsInstance(state, TreeNode)
 
+    # Primary attributes
+    def test_State_has_a_board(self):
+        state = generic_state()
+        confirm_attribute(state, 'board')
+
+    def test_State_has_a_player_and_opponent(self):
+        # Combined spec for simplicity
+        state = generic_state()
+        confirm_attribute(state, 'player')
+        confirm_attribute(state, 'opponent')
+
+    def test_State_has_turn_and_actions_remaining(self):
+        # Combined spec for simplicity
+        state = generic_state()
+        confirm_attribute(state, 'turn')
+        confirm_attribute(state, 'actions_remaining')
+
+    # extra turn information
+    def test_for_odd_state_active_passive_is_player_opponent(self):
+        odd_state = generic_state(turn=3)
+        self.assertIs(odd_state.active, odd_state.player)
+        self.assertIs(odd_state.passive, odd_state.opponent)
+
+    def test_for_even_state_active_passive_is_opponent_player(self):
+        even_state = generic_state(turn=4)
+        self.assertIs(even_state.passive, even_state.player)
+        self.assertIs(even_state.active, even_state.opponent)
 
 
 class Test_Board(unittest.TestCase):

@@ -6,6 +6,231 @@ import numpy
 from treenode import TreeNode
 
 
+    # """Simulates the possibilities of a PQ game.
+    #
+    # Attributes represent a single state:
+    # For example, the board, number of actions remaining and the results of
+    # all valid swaps.
+    #
+    # Simulation produces a tree representing one set of possibilities for a game.
+    # Tree Structure:
+    # state  --->  transition  ->  state
+    #          ->  ...
+    #          ->  transition  ->  state
+    #
+    # Tree State Assumptions:
+    # - Each state has (0+) transitions as children in the tree
+    # - Each state that is a leaf has not been simulated yet
+    #
+    # Tree Transition Assumptions:
+    # - Each transition has (0 or 1) state as its child in the tree
+    # - Each transition that is a leaf is an "end of turn" transition
+    # """
+    # # Parts Classes that can be customized in specific game types
+    # Tile = Tile
+    # Board = Board
+    # Actor = Actor
+    # _random_fill = False
+    #
+    # def _leaves_within_depth(self, absolute_turn_depth):
+    #     """Generate exactly the leaves within the tree rooted at self that
+    #     are within the absolute turn depth."""
+    #     for leaf in self._node.leaves:
+    #         try:  # handle states
+    #             turn = leaf.main.turn
+    #         except AttributeError:  # handle transitions (no "turn" attribute)
+    #             turn = leaf.parent.main.turn
+    #         if turn <= absolute_turn_depth:
+    #             yield leaf.main
+    #
+    # # Core behavior
+    # def end_of_turns(self, absolute_turn_depth=1):
+    #     """Yield each qualifying EOT found within the tree rooted at self.
+    #     Complete all and only simulation to EOT within absolute_turn_depth.
+    #
+    #     Arguments:
+    #     absolute_turn_depth: no simulation will be done below this depth
+    #     random_fill: instruct the simulation to fill the board with random
+    #         tiles after each execution or not.
+    #     """
+    #     # tracking for unprocessed states and end of turns
+    #     ready_for_action_stack = deque(leaf.main for leaf in self._node.leaves)
+    #     # continue simulating until everything within turn limit is done
+    #     while ready_for_action_stack:
+    #         next_job = ready_for_action_stack.pop()
+    #         # get a state to simulate or continue to the next job
+    #         if next_job.type == 'mana drain':
+    #             continue  # ignore mana drains
+    #         elif next_job.type == 'state' and not tuple(next_job.children()):
+    #             # this state is ready to be simulated
+    #             if next_job.turn > absolute_turn_depth:
+    #                 continue  # ignore states over the turn limit
+    #             state = next_job
+    #         elif next_job.type == 'end of turn':
+    #             last_state = next_job.parent
+    #             # ignore end of turns at the turn limit
+    #             if last_state.turn + 1 > absolute_turn_depth:
+    #                 continue
+    #             # the next turn is within the turn limit so simulate it
+    #             state = self.__class__(board=last_state.board.copy(),
+    #                                    turn=last_state.turn + 1,
+    #                                    actions_remaining=1,
+    #                                    player=last_state.player.copy(),
+    #                                    opponent=last_state.opponent.copy())
+    #             # attach the new turn to the previous turn
+    #             next_job.attach(state)
+    #         else:
+    #             raise ValueError('Expected an unsimulated state or some kind of'
+    #                              'end of turn transition in the job stack but'
+    #                              'found: {}'.format(next_job))
+    #
+    #         # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #         #  Begin atomic changes
+    #         # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #
+    #         # handle states that are ready but have no actions remaining
+    #         if state.actions_remaining <= 0:
+    #             # determine if this is a manadrain or just end of turn
+    #             is_manadrain = True
+    #             for swap_pair in state.board.potential_swaps():
+    #                 result_board, destroyed_groups = \
+    #                     state.board.execute_once(swap=swap_pair,
+    #                                              random_fill=self._random_fill)
+    #                 if destroyed_groups:
+    #                     is_manadrain = False
+    #                     break  # stop when the first valid swap found
+    #             # attach appropriate EOT or ManaDrain
+    #             if is_manadrain:
+    #                 end = ManaDrain()
+    #                 state.player.apply_manadrain()
+    #                 state.opponent.apply_manadrain()
+    #             else:
+    #                 end = EOT()
+    #                 ready_for_action_stack.append(end)
+    #             state.attach(end)
+    #             yield end
+    #             continue  # no further simulation for this state
+    #         # handle swaps
+    #         for swap_pair in state.board.potential_swaps():
+    #             result_board, destroyed_groups = \
+    #                 state.board.execute_once(swap=swap_pair,
+    #                                          random_fill=self._random_fill)
+    #             if not destroyed_groups:
+    #                 continue  # discard this swap if it was invalid
+    #             # attach the transition
+    #             swap = Swap(swap_pair)
+    #             state.attach(swap)
+    #             # attach the result state
+    #             bonus_action = any(len(group) >= 4
+    #                                for group in destroyed_groups)
+    #             used_bonus_action = False
+    #             if bonus_action:
+    #                 used_bonus_action = True
+    #             result_state = self.__class__(board=result_board,
+    #                                           turn=state.turn,
+    #                                           actions_remaining=
+    #                                           state.actions_remaining
+    #                                           - 1 + bonus_action,
+    #                                           player=state.player.copy(),
+    #                                           opponent=state.opponent.copy())
+    #             # update the player and opponent
+    #             base_attack = \
+    #                 result_state.active.apply_tile_groups(destroyed_groups)
+    #             result_state.passive.apply_attack(base_attack)
+    #             swap.attach(result_state)
+    #             # hook for capture game optimizations. does nothing in base
+    #             if self._disallow_state(state):
+    #                 filtered = Filtered()
+    #                 result_state.attach(filtered)
+    #                 continue  # no more simulation for this filtered state
+    #             # handle any chain reactions
+    #             potential_chain = result_state
+    #             while potential_chain:
+    #                 result_board, destroyed_groups = \
+    #                     potential_chain.board.execute_once(random_fill=
+    #                                                        self._random_fill)
+    #                 # when chain reaction is done, submit it to the job stack
+    #                 if not destroyed_groups:
+    #                     # hook for capture game optimizations. no effect in base
+    #                     if self._disallow_state(potential_chain):
+    #                         filtered = Filtered()
+    #                         potential_chain.attach(filtered)
+    #                         break  # no more simulation for this filtered state
+    #                     ready_for_action_stack.append(potential_chain)
+    #                     break
+    #                 # attach the transition
+    #                 chain = ChainReaction()
+    #                 potential_chain.attach(chain)
+    #                 # attach the result state
+    #                 if used_bonus_action:
+    #                     bonus_action = 0
+    #                 else:
+    #                     bonus_action = any(len(group) >= 4
+    #                                        for group in destroyed_groups)
+    #                     used_bonus_action = True
+    #                 result_state = \
+    #                     self.__class__(board=result_board,
+    #                                    turn=potential_chain.turn,
+    #                                    actions_remaining=
+    #                                    potential_chain.actions_remaining
+    #                                    + bonus_action,
+    #                                    player=potential_chain.player.copy(),
+    #                                    opponent=potential_chain.opponent.copy())
+    #                 # update the player and opponent
+    #                 base_attack = \
+    #                     result_state.active.apply_tile_groups(destroyed_groups)
+    #                 result_state.passive.apply_attack(base_attack)
+    #                 chain.attach(result_state)
+    #                 # prepare to try for another chain reaction
+    #                 potential_chain = result_state
+    #         #at this point all swaps have been tried
+    #         #if nothing was valid, it's a manadrain
+    #         if not tuple(state.children()):
+    #             manadrain = ManaDrain()
+    #             state.attach(manadrain)
+    #             state.player.apply_manadrain()
+    #             state.opponent.apply_manadrain()
+    #             yield manadrain  # manadrain is a type of end of turn
+    #             continue  # no further simulation for this state
+    #         # handle spells only if this was not a manadrain
+    #         pass
+    #         # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #         #  End atomic changes
+    #         # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #
+    # def _disallow_state(self, state):
+    #     return False
+    #
+    # # Special methods
+    # def __str__(self):
+    #     indent = '    '
+    #     line_list = list()
+    #     line_list.append('State:')
+    #     line_list.append(indent + '{} : turn'.format(self.turn))
+    #     line_list.append(indent + '{} : actions remaining'
+    #                      ''.format(self.actions_remaining))
+    #     line_list.append(indent + '{} : children'.format(len(self.children())))
+    #     line_list.append(indent + 'board:')
+    #     line_list.extend(indent + indent + line for line
+    #                      in str(self.board).splitlines())
+    #     return '\n    '.join(line_list)
+    #
+    # def __repr__(self):
+    #     return str(self)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class Tile(object):
     """Behaves like a PQ Tile."""
     _all_types = ('r', 'g', 'b', 'y',  # colors
@@ -143,6 +368,8 @@ class Board(object):
                 for col, tile_character in enumerate(row_string):
                     self._array[row, col] = Tile.singleton(tile_character)
 
+#todo: does this have a bug that can return None in a group?
+#todo: doesn't have to be none in a group. just an empty group. also not good
     # Execution Methods (Core behavior)
     def execute_once(self, swap=None,
                      spell_changes=None, spell_destructions=None,
@@ -528,7 +755,6 @@ class Actor(object):
                                 'group of tiles: {}'.format(tile_group))
             # adjust self value
             if type_count:
-                #todo: specify weighting
                 new_value = type_count * type_multiplier
                 original = getattr(self, group_type)
                 setattr(self, group_type, original + new_value)
@@ -634,236 +860,6 @@ class State(TreeNode):
     def passive(self):
         """Return player when turn is even; opponent when odd."""
         return self.opponent if self.turn % 2 else self.player
-
-
-
-
-
-
-
-
-    # """Simulates the possibilities of a PQ game.
-    #
-    # Attributes represent a single state:
-    # For example, the board, number of actions remaining and the results of
-    # all valid swaps.
-    #
-    # Simulation produces a tree representing one set of possibilities for a game.
-    # Tree Structure:
-    # state  --->  transition  ->  state
-    #          ->  ...
-    #          ->  transition  ->  state
-    #
-    # Tree State Assumptions:
-    # - Each state has (0+) transitions as children in the tree
-    # - Each state that is a leaf has not been simulated yet
-    #
-    # Tree Transition Assumptions:
-    # - Each transition has (0 or 1) state as its child in the tree
-    # - Each transition that is a leaf is an "end of turn" transition
-    # """
-    # # Parts Classes that can be customized in specific game types
-    # Tile = Tile
-    # Board = Board
-    # Actor = Actor
-    # _random_fill = False
-    #
-    # def _leaves_within_depth(self, absolute_turn_depth):
-    #     """Generate exactly the leaves within the tree rooted at self that
-    #     are within the absolute turn depth."""
-    #     for leaf in self._node.leaves:
-    #         try:  # handle states
-    #             turn = leaf.main.turn
-    #         except AttributeError:  # handle transitions (no "turn" attribute)
-    #             turn = leaf.parent.main.turn
-    #         if turn <= absolute_turn_depth:
-    #             yield leaf.main
-    #
-    # # Core behavior
-    # def end_of_turns(self, absolute_turn_depth=1):
-    #     """Yield each qualifying EOT found within the tree rooted at self.
-    #     Complete all and only simulation to EOT within absolute_turn_depth.
-    #
-    #     Arguments:
-    #     absolute_turn_depth: no simulation will be done below this depth
-    #     random_fill: instruct the simulation to fill the board with random
-    #         tiles after each execution or not.
-    #     """
-    #     # tracking for unprocessed states and end of turns
-    #     ready_for_action_stack = deque(leaf.main for leaf in self._node.leaves)
-    #     # continue simulating until everything within turn limit is done
-    #     while ready_for_action_stack:
-    #         next_job = ready_for_action_stack.pop()
-    #         # get a state to simulate or continue to the next job
-    #         if next_job.type == 'mana drain':
-    #             continue  # ignore mana drains
-    #         elif next_job.type == 'state' and not tuple(next_job.children()):
-    #             # this state is ready to be simulated
-    #             if next_job.turn > absolute_turn_depth:
-    #                 continue  # ignore states over the turn limit
-    #             state = next_job
-    #         elif next_job.type == 'end of turn':
-    #             last_state = next_job.parent
-    #             # ignore end of turns at the turn limit
-    #             if last_state.turn + 1 > absolute_turn_depth:
-    #                 continue
-    #             # the next turn is within the turn limit so simulate it
-    #             state = self.__class__(board=last_state.board.copy(),
-    #                                    turn=last_state.turn + 1,
-    #                                    actions_remaining=1,
-    #                                    player=last_state.player.copy(),
-    #                                    opponent=last_state.opponent.copy())
-    #             # attach the new turn to the previous turn
-    #             next_job.attach(state)
-    #         else:
-    #             raise ValueError('Expected an unsimulated state or some kind of'
-    #                              'end of turn transition in the job stack but'
-    #                              'found: {}'.format(next_job))
-    #
-    #         # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #         #  Begin atomic changes
-    #         # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #
-    #         # handle states that are ready but have no actions remaining
-    #         if state.actions_remaining <= 0:
-    #             # determine if this is a manadrain or just end of turn
-    #             is_manadrain = True
-    #             for swap_pair in state.board.potential_swaps():
-    #                 result_board, destroyed_groups = \
-    #                     state.board.execute_once(swap=swap_pair,
-    #                                              random_fill=self._random_fill)
-    #                 if destroyed_groups:
-    #                     is_manadrain = False
-    #                     break  # stop when the first valid swap found
-    #             # attach appropriate EOT or ManaDrain
-    #             if is_manadrain:
-    #                 end = ManaDrain()
-    #                 state.player.apply_manadrain()
-    #                 state.opponent.apply_manadrain()
-    #             else:
-    #                 end = EOT()
-    #                 ready_for_action_stack.append(end)
-    #             state.attach(end)
-    #             yield end
-    #             continue  # no further simulation for this state
-    #         # handle swaps
-    #         for swap_pair in state.board.potential_swaps():
-    #             result_board, destroyed_groups = \
-    #                 state.board.execute_once(swap=swap_pair,
-    #                                          random_fill=self._random_fill)
-    #             if not destroyed_groups:
-    #                 continue  # discard this swap if it was invalid
-    #             # attach the transition
-    #             swap = Swap(swap_pair)
-    #             state.attach(swap)
-    #             # attach the result state
-    #             bonus_action = any(len(group) >= 4
-    #                                for group in destroyed_groups)
-    #             used_bonus_action = False
-    #             if bonus_action:
-    #                 used_bonus_action = True
-    #             result_state = self.__class__(board=result_board,
-    #                                           turn=state.turn,
-    #                                           actions_remaining=
-    #                                           state.actions_remaining
-    #                                           - 1 + bonus_action,
-    #                                           player=state.player.copy(),
-    #                                           opponent=state.opponent.copy())
-    #             # update the player and opponent
-    #             base_attack = \
-    #                 result_state.active.apply_tile_groups(destroyed_groups)
-    #             result_state.passive.apply_attack(base_attack)
-    #             swap.attach(result_state)
-    #             # hook for capture game optimizations. does nothing in base
-    #             if self._disallow_state(state):
-    #                 filtered = Filtered()
-    #                 result_state.attach(filtered)
-    #                 continue  # no more simulation for this filtered state
-    #             # handle any chain reactions
-    #             potential_chain = result_state
-    #             while potential_chain:
-    #                 result_board, destroyed_groups = \
-    #                     potential_chain.board.execute_once(random_fill=
-    #                                                        self._random_fill)
-    #                 # when chain reaction is done, submit it to the job stack
-    #                 if not destroyed_groups:
-    #                     # hook for capture game optimizations. no effect in base
-    #                     if self._disallow_state(potential_chain):
-    #                         filtered = Filtered()
-    #                         potential_chain.attach(filtered)
-    #                         break  # no more simulation for this filtered state
-    #                     ready_for_action_stack.append(potential_chain)
-    #                     break
-    #                 # attach the transition
-    #                 chain = ChainReaction()
-    #                 potential_chain.attach(chain)
-    #                 # attach the result state
-    #                 if used_bonus_action:
-    #                     bonus_action = 0
-    #                 else:
-    #                     bonus_action = any(len(group) >= 4
-    #                                        for group in destroyed_groups)
-    #                     used_bonus_action = True
-    #                 result_state = \
-    #                     self.__class__(board=result_board,
-    #                                    turn=potential_chain.turn,
-    #                                    actions_remaining=
-    #                                    potential_chain.actions_remaining
-    #                                    + bonus_action,
-    #                                    player=potential_chain.player.copy(),
-    #                                    opponent=potential_chain.opponent.copy())
-    #                 # update the player and opponent
-    #                 base_attack = \
-    #                     result_state.active.apply_tile_groups(destroyed_groups)
-    #                 result_state.passive.apply_attack(base_attack)
-    #                 chain.attach(result_state)
-    #                 # prepare to try for another chain reaction
-    #                 potential_chain = result_state
-    #         #at this point all swaps have been tried
-    #         #if nothing was valid, it's a manadrain
-    #         if not tuple(state.children()):
-    #             manadrain = ManaDrain()
-    #             state.attach(manadrain)
-    #             state.player.apply_manadrain()
-    #             state.opponent.apply_manadrain()
-    #             yield manadrain  # manadrain is a type of end of turn
-    #             continue  # no further simulation for this state
-    #         # handle spells only if this was not a manadrain
-    #         pass
-    #         # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #         #  End atomic changes
-    #         # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #
-    # def _disallow_state(self, state):
-    #     return False
-    #
-    # # Special methods
-    # def __str__(self):
-    #     indent = '    '
-    #     line_list = list()
-    #     line_list.append('State:')
-    #     line_list.append(indent + '{} : turn'.format(self.turn))
-    #     line_list.append(indent + '{} : actions remaining'
-    #                      ''.format(self.actions_remaining))
-    #     line_list.append(indent + '{} : children'.format(len(self.children())))
-    #     line_list.append(indent + 'board:')
-    #     line_list.extend(indent + indent + line for line
-    #                      in str(self.board).splitlines())
-    #     return '\n    '.join(line_list)
-    #
-    # def __repr__(self):
-    #     return str(self)
-
-
-
-
-
-
-
-
-
-
-
 
 
 # Transitions
