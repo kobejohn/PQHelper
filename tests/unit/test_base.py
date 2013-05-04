@@ -9,380 +9,273 @@ from pqhelper.base import Board, Tile
 from pqhelper.base import TreeNode
 
 
-class Test_Actor(unittest.TestCase):
-    def test___init___requires_a_name_for_easier_human_id(self):
-        name_spec = 'a name'
-        try:
-            actor = Actor(name_spec)
-        except TypeError:
-            self.fail('Unexpectedly failed to create an actor with a name.')
-        self.assertEqual(actor.name, name_spec)
-
-    @patch('pqhelper.base.Actor._copy_attributes', ('a', 'b'))
-    def test___init___requires_all_attributes_listed_in__copy_attributes(self):
-        # Combined specification for simplicity
-        name = 'a name'
-        a = 0, 10  # current and maximum values
-        b = 0, 10
-        extra = 'extra'
-        # confirm doesn't work with less than a and b
-        self.assertRaises(TypeError, Actor, name)
-        # confirm doesn't work with more than a and b
-        self.assertRaises(TypeError, Actor, name, a, b, extra)
-        # confirm works with exactly a and b
-        try:
-            Actor(name, a, b)
-        except TypeError:
-            self.fail('Unexpectedly failed to create Actor with required'
-                      ' attributes')
-
-    @patch('pqhelper.base.Actor._copy_attributes', ('a', 'b'))
-    def test_copy_recreates_based_on__copy_attributes(self):
-        name_spec = 'a name'
-        a_spec = 1, 2  # current and maximum values
-        b_spec = 3, 4
-        actor = Actor(name_spec, a_spec, b_spec)
-        actor_copy = actor.copy()
-        self.assertEqual(actor_copy.name, name_spec)
-        self.assertEqual(actor_copy.a, a_spec[0])
-        self.assertEqual(actor_copy.a_max, a_spec[1])
-        self.assertEqual(actor_copy.b, b_spec[0])
-        self.assertEqual(actor_copy.b_max, b_spec[1])
-
-    def test_apply_manadrain_provides_hook_for_special_game_behavior(self):
-        actor = Actor('')
-        try:
-            actor.apply_manadrain()
-        except AttributeError:
-            self.fail('Unexpectedly failed to run apply_manadrain.')
-
-    def test_apply_tile_groups_provides_hook_for_special_game_behavior(self):
-        actor = Actor('')
-        try:
-            actor.apply_tile_groups(1)
-        except AttributeError:
-            self.fail('Unexpectedly failed to run apply_tile_groups.')
-
-    def test_apply_attack_provides_hook_for_special_game_behavior(self):
-        actor = Actor('')
-        try:
-            actor.apply_attack(1)
-        except AttributeError:
-            self.fail('Unexpectedly failed to run apply_attack.')
-
-
 class Test_State(unittest.TestCase):
-    # Test Parameters
-    _board_string_two_paths = '........\n' \
-                              '........\n' \
-                              'g......g\n' \
-                              'g......g\n' \
-                              's......s\n' \
-                              's......s\n' \
-                              'xg....gx\n' \
-                              'rsrryysy'
+    # Simulation tree behavior
+    def test_State_is_instance_of_TreeNode_for_tree_behavior(self):
+        state = generic_state()
+        self.assertIsInstance(state, TreeNode)
 
-    # Customizable Class attributes
-    def test_class_holds_references_to_classes_of_Tile_Board_and_Actor(self):
-        try:
-            getattr(State, 'Tile')
-            getattr(State, 'Board')
-            getattr(State, 'Actor')
-        except Exception as e:
-            self.fail('Expected to find classes for the parts that state'
-                      ' uses but got this error: {}'.format(e))
+    # Primary attributes
+    def test_State_has_a_board(self):
+        state = generic_state()
+        confirm_attribute(state, 'board')
 
-    # Instantiaion
-    def test___init___accepts_optional_board(self):
-        board = Board(self._board_string_two_paths)
-        state = State(board=board)
-        self.assertEqual(str(state.board), self._board_string_two_paths)
+    def test_State_has_a_player_and_opponent(self):
+        # Combined spec for simplicity
+        state = generic_state()
+        confirm_attribute(state, 'player')
+        confirm_attribute(state, 'opponent')
 
-    def test___init___accepts_optional_turn(self):
-        state = State(turn=2)
-        self.assertEqual(state.turn, 2)
+    def test_State_has_turn_and_actions_remaining(self):
+        # Combined spec for simplicity
+        state = generic_state()
+        confirm_attribute(state, 'turn')
+        confirm_attribute(state, 'actions_remaining')
 
-    def test___init___accepts_optional_actions_remaining(self):
-        state = State(actions_remaining=2)
-        self.assertEqual(state.actions_remaining, 2)
+    # extra turn information
+    def test_for_odd_state_active_passive_is_player_opponent(self):
+        odd_state = generic_state(turn=3)
+        self.assertIs(odd_state.active, odd_state.player)
+        self.assertIs(odd_state.passive, odd_state.opponent)
 
-    def test___init___accepts_optional_player_and_opponent(self):
-        try:
-            State(player='player', opponent='opponent')
-        except Exception as e:
-            self.fail('Expected to be able to provide player and opponent'
-                      ' arguments but got this error:\n{}'.format(e))
-
-    # Generating end_of_turns (core behavior)
-    def test_end_of_turns_produces_exactly_EOTs_within_turn_depth(self):
-        board = Board(self._board_string_two_paths)
-        state = State(board)
-        eots = list(state.end_of_turns(absolute_turn_depth=1))
-        eot_board_strings = [str(eot.parent.board) for eot in eots]
-        # confirm that the real boards match the specification
-        # one is swap on left side, other is swap on right side
-        eot_board_strings_spec = ['........\n'
-                                  '........\n'
-                                  'g......g\n'
-                                  'g......g\n'
-                                  's......s\n'
-                                  's......s\n'
-                                  'x.....gx\n'
-                                  'sg..yysy',
-
-                                  '........\n'
-                                  '........\n'
-                                  'g......g\n'
-                                  'g......g\n'
-                                  's......s\n'
-                                  's......s\n'
-                                  'xg.....x\n'
-                                  'rsrr..gs']
-        self.assertItemsEqual(eot_board_strings, eot_board_strings_spec,
-                              'Expected to produce exactly EOTs within the'
-                              ' turn limit:\n{}\n'
-                              'but got this:\n{}'
-                              ''.format('\n'.join(eot_board_strings_spec),
-                                        '\n'.join(eot_board_strings)))
-
-    def test_end_of_turns_does_no_simulation_below_absolute_turn_depth(self):
-        board = Board(self._board_string_two_paths)
-        state = State(board)
-        turn_limit = 2
-        # use list to make sure all the results are generated / sim is done
-        list(state.end_of_turns(absolute_turn_depth=2))
-        leaves = [node.main for node in state._node.leaves]
-        for leaf in leaves:
-            if isinstance(leaf, State):
-                self.assertLessEqual(leaf.turn, turn_limit)
-            elif isinstance(leaf, BaseTransition):
-                self.assertLessEqual(leaf.parent.turn, turn_limit)
-
-    def test_end_of_turns_produces_depth_before_breadth(self):
-        board = Board(self._board_string_two_paths)
-        state = State(board)
-        enough_turns_to_complete_either_side = 5
-        eots = state.end_of_turns(absolute_turn_depth=
-                                  enough_turns_to_complete_either_side)
-        eots = list(eots)
-        board_sequence = [str(eot.parent.board) for eot in eots]
-        # confirm that end of one set of actions comes before beginning of other
-        left_start = '........\n' \
-                     '........\n' \
-                     'g......g\n' \
-                     'g......g\n' \
-                     's......s\n' \
-                     's......s\n' \
-                     'x.....gx\n' \
-                     'sg..yysy'
-        left_end = '........\n' \
-                   '........\n' \
-                   '.......g\n' \
-                   '.......g\n' \
-                   '.......s\n' \
-                   '.......s\n' \
-                   '......gx\n' \
-                   '.x..yysy'
-        right_start = '........\n' \
-                      '........\n' \
-                      'g......g\n' \
-                      'g......g\n' \
-                      's......s\n' \
-                      's......s\n' \
-                      'xg.....x\n' \
-                      'rsrr..gs'
-        right_end = '........\n' \
-                    '........\n' \
-                    'g.......\n' \
-                    'g.......\n' \
-                    's.......\n' \
-                    's.......\n' \
-                    'xg......\n' \
-                    'rsrr..x.'
-        left_start_index = board_sequence.index(left_start)
-        left_end_index = board_sequence.index(left_end)
-        right_start_index = board_sequence.index(right_start)
-        right_end_index = board_sequence.index(right_end)
-        left_end_before_right_start = left_end_index < right_start_index
-        right_end_before_left_start = right_end_index < left_start_index
-        self.assertTrue(left_end_before_right_start
-                        or right_end_before_left_start,
-                        'Expected to see one side of swaps done before the'
-                        ' other starts but got this:\n{}'
-                        ''.format('\n'.join(board_sequence)))
-
-    @patch.object(State, '_disallow_state')
-    def test_end_of_turns_stops_bad_states_with_Filtered(self, mock_disallow):
-        mock_disallow.return_value = True  # disallow all states
-        board = Board(self._board_string_two_paths)
-        state = State(board)
-        enough_turns_to_go_beyond_filtered = 2
-        eots = state.end_of_turns(absolute_turn_depth=
-                                  enough_turns_to_go_beyond_filtered)
-        eots = list(eots)
-        # confirm that all results were filtered and tagged
-        self.assertTrue(all(eot.type == 'filtered' for eot in eots))
-
-    def test_active_passive_are_player_opponent_for_even_and_vice_versa(self):
-        chain_reaction_first = '........\n' \
-                               '........\n' \
-                               '........\n' \
-                               '........\n' \
-                               '.......r\n' \
-                               '.......s\n' \
-                               '......xs\n' \
-                               '...xxrsr'
-        player = Actor('player')
-        opponent = Actor('opponent')
-        root = State(Board(chain_reaction_first),
-                     player=player, opponent=opponent)
-        # get the end of turn with empty board (chain reaction + second swap)
-        enough_turns = 3
-        list(root.end_of_turns(enough_turns))
-        # confirm that each state has the appropriate active actor
-        for node in root._node.in_order_nodes:
-            if node.main.type != 'state':
-                continue
-            state = node.main
-            if state.turn % 2:  # odd
-                self.assertEqual(state.active.name, 'player')
-                self.assertEqual(state.passive.name, 'opponent')
-            else:  # even
-                self.assertEqual(state.active.name, 'opponent')
-                self.assertEqual(state.passive.name, 'player')
-
-    # Convenience methods
-    def test__leaves_within_depth_produces_exactly_leaves_within_depth(self):
-        depth = 2
-        root, leaves_within_depth, leaves_below_depth \
-            = self.produce_fake_simulation()
-        leaf_ids = [id(leaf) for leaf in root._leaves_within_depth(depth)]
-        # Safety confirmation that there are some leaves below depth 2 to ignore
-        if not leaves_below_depth:
-            self.fail('Expected to get a simulation with leaves below the'
-                      ' target depth but did not.')
-        # Confirm that the depth 2 leaves exactly match specification
-        leaf_ids_spec = [id(leaf) for leaf in leaves_within_depth]
-        self.assertItemsEqual(leaf_ids, leaf_ids_spec)
-
-    # Tree behavior
-    def test_attach_attaches_children(self):
-        state = State()
-        transition = BaseTransition()
-        try:
-            state.attach(transition)
-        except Exception as e:
-            self.fail('Unexpected problem attaching a child to a state:'
-                      '\n{}'.format(e))
-
-    def test_children_provides_children(self):
-        state = State()
-        transition = BaseTransition()
-        state.attach(transition)
-        children_ids = [id(child) for child in state.children()]
-        children_ids_spec = [id(transition)]
-        self.assertItemsEqual(children_ids, children_ids_spec)
-
-    def test_parent_provides_parent(self):
-        state = State()
-        transition = BaseTransition()
-        transition.graft_child(state)
-        parent_id = id(state.parent)
-        parent_id_spec = id(transition)
-        self.assertEqual(parent_id, parent_id_spec)
-
-    def test_parent_provides_None_if_no_parent(self):
-        state = State()
-        self.assertIsNone(state.parent)
-
-    # Special methods
-    def test___str___shows_the_core_data_of_state_and_number_of_children(self):
-        board_string_spec = self._board_string_two_paths
-        board = Board(board_string_spec)
-        turn = 2
-        actions_remaining = 3
-        state = State(board=board, turn=turn,
-                      actions_remaining=actions_remaining)
-        transition_1 = BaseTransition()
-        transition_2 = BaseTransition()
-        state.attach(transition_1)
-        state.attach(transition_2)
-        state_string = str(state)
-        # confirm board
-        for line in board_string_spec.splitlines():
-            self.assertIn(line, state_string)
-        # confirm turn
-        turn_string_spec = '{} : turn'.format(turn)
-        self.assertIn(turn_string_spec, state_string)
-        # confirm actions remaining
-        ar_string_spec = '{} : actions remaining'.format(actions_remaining)
-        self.assertIn(ar_string_spec, state_string)
-        # confirm number of children
-        children_string_spec = '{} : children'.format(2)
-        self.assertIn(children_string_spec, state_string)
-
-    def produce_fake_simulation(self):
-        """Produce a fake simulation.
-
-        Return: root, leaves_within_depth_2, leaves_below_depth_2
-        """
-        # create a tree with:
-        #   - level 2 leaves: 1 EOT, 1 state
-        #   - level 3 leaves: 1 EOT, 1 state
-        # make all the parts
-        root_t1 = State(turn=1)  # any state is fine
-        a_transition_t1 = ChainReaction()  # any transition is fine
-        a_state_t2 = State(turn=2)
-        a_transition_t2 = ChainReaction()
-        a_state_t3 = State(turn=3)
-        a_transition_t3 = ChainReaction()  # level 3 transition leaf
-        b_transition_t1 = ChainReaction()
-        b_state_t2 = State(turn=2)
-        b_transition_t2 = ChainReaction()
-        b_state_t3 = State(turn=3)  # level 3 state leaf
-        c_transition_t1 = ChainReaction()
-        c_state_t2 = State(turn=2)
-        c_transition_t2 = ChainReaction()  # level 2 transition leaf
-        d_transition_t1 = ChainReaction()
-        d_state_t2 = State(turn=2)  # level 2 state leaf
-        # build level 1 (no leaves)
-        root_t1.attach(a_transition_t1)
-        root_t1.attach(b_transition_t1)
-        root_t1.attach(c_transition_t1)
-        root_t1.attach(d_transition_t1)
-        # build level 2 (c and d are leaves)
-        a_transition_t1.graft_child(a_state_t2)
-        b_transition_t1.graft_child(b_state_t2)
-        c_transition_t1.graft_child(c_state_t2)
-        d_transition_t1.graft_child(d_state_t2)
-        a_state_t2.attach(a_transition_t2)
-        b_state_t2.attach(b_transition_t2)
-        c_state_t2.attach(c_transition_t2)
-        # build level 3 (a and b are leaves)
-        a_transition_t2.graft_child(a_state_t3)
-        b_transition_t2.graft_child(b_state_t3)
-        a_state_t3.attach(a_transition_t3)
-        leaves_within_2 = (c_transition_t2, d_state_t2)
-        leaves_below_2 = (a_transition_t3, b_state_t3)
-        return root_t1, leaves_within_2, leaves_below_2
+    def test_for_even_state_active_passive_is_opponent_player(self):
+        even_state = generic_state(turn=4)
+        self.assertIs(even_state.passive, even_state.player)
+        self.assertIs(even_state.active, even_state.opponent)
 
 
-class Test_Transitions(unittest.TestCase):
-    def test_BaseTransition_is_instance_of_TreeNode_for_tree_behavior(self):
-        base_transition = BaseTransition()
-        self.assertIsInstance(base_transition, TreeNode)
+    # # Test Parameters
+    # _board_string_two_paths = '........\n' \
+    #                           '........\n' \
+    #                           'g......g\n' \
+    #                           'g......g\n' \
+    #                           's......s\n' \
+    #                           's......s\n' \
+    #                           'xg....gx\n' \
+    #                           'rsrryysy'
+    #
+    # # Customizable Class attributes
+    # def test_class_holds_references_to_classes_of_Tile_Board_and_Actor(self):
+    #     try:
+    #         getattr(State, 'Tile')
+    #         getattr(State, 'Board')
+    #         getattr(State, 'Actor')
+    #     except Exception as e:
+    #         self.fail('Expected to find classes for the parts that state'
+    #                   ' uses but got this error: {}'.format(e))
+    #
+    # # Generating end_of_turns (core behavior)
+    # def test_end_of_turns_produces_exactly_EOTs_within_turn_depth(self):
+    #     board = Board(self._board_string_two_paths)
+    #     state = State(board)
+    #     eots = list(state.end_of_turns(absolute_turn_depth=1))
+    #     eot_board_strings = [str(eot.parent.board) for eot in eots]
+    #     # confirm that the real boards match the specification
+    #     # one is swap on left side, other is swap on right side
+    #     eot_board_strings_spec = ['........\n'
+    #                               '........\n'
+    #                               'g......g\n'
+    #                               'g......g\n'
+    #                               's......s\n'
+    #                               's......s\n'
+    #                               'x.....gx\n'
+    #                               'sg..yysy',
+    #
+    #                               '........\n'
+    #                               '........\n'
+    #                               'g......g\n'
+    #                               'g......g\n'
+    #                               's......s\n'
+    #                               's......s\n'
+    #                               'xg.....x\n'
+    #                               'rsrr..gs']
+    #     self.assertItemsEqual(eot_board_strings, eot_board_strings_spec,
+    #                           'Expected to produce exactly EOTs within the'
+    #                           ' turn limit:\n{}\n'
+    #                           'but got this:\n{}'
+    #                           ''.format('\n'.join(eot_board_strings_spec),
+    #                                     '\n'.join(eot_board_strings)))
+    #
+    # def test_end_of_turns_does_no_simulation_below_absolute_turn_depth(self):
+    #     board = Board(self._board_string_two_paths)
+    #     state = State(board)
+    #     turn_limit = 2
+    #     # use list to make sure all the results are generated / sim is done
+    #     list(state.end_of_turns(absolute_turn_depth=2))
+    #     leaves = [node.main for node in state._node.leaves]
+    #     for leaf in leaves:
+    #         if isinstance(leaf, State):
+    #             self.assertLessEqual(leaf.turn, turn_limit)
+    #         elif isinstance(leaf, BaseTransition):
+    #             self.assertLessEqual(leaf.parent.turn, turn_limit)
+    #
+    # def test_end_of_turns_produces_depth_before_breadth(self):
+    #     board = Board(self._board_string_two_paths)
+    #     state = State(board)
+    #     enough_turns_to_complete_either_side = 5
+    #     eots = state.end_of_turns(absolute_turn_depth=
+    #                               enough_turns_to_complete_either_side)
+    #     eots = list(eots)
+    #     board_sequence = [str(eot.parent.board) for eot in eots]
+    #     # confirm that end of one set of actions comes before beginning of other
+    #     left_start = '........\n' \
+    #                  '........\n' \
+    #                  'g......g\n' \
+    #                  'g......g\n' \
+    #                  's......s\n' \
+    #                  's......s\n' \
+    #                  'x.....gx\n' \
+    #                  'sg..yysy'
+    #     left_end = '........\n' \
+    #                '........\n' \
+    #                '.......g\n' \
+    #                '.......g\n' \
+    #                '.......s\n' \
+    #                '.......s\n' \
+    #                '......gx\n' \
+    #                '.x..yysy'
+    #     right_start = '........\n' \
+    #                   '........\n' \
+    #                   'g......g\n' \
+    #                   'g......g\n' \
+    #                   's......s\n' \
+    #                   's......s\n' \
+    #                   'xg.....x\n' \
+    #                   'rsrr..gs'
+    #     right_end = '........\n' \
+    #                 '........\n' \
+    #                 'g.......\n' \
+    #                 'g.......\n' \
+    #                 's.......\n' \
+    #                 's.......\n' \
+    #                 'xg......\n' \
+    #                 'rsrr..x.'
+    #     left_start_index = board_sequence.index(left_start)
+    #     left_end_index = board_sequence.index(left_end)
+    #     right_start_index = board_sequence.index(right_start)
+    #     right_end_index = board_sequence.index(right_end)
+    #     left_end_before_right_start = left_end_index < right_start_index
+    #     right_end_before_left_start = right_end_index < left_start_index
+    #     self.assertTrue(left_end_before_right_start
+    #                     or right_end_before_left_start,
+    #                     'Expected to see one side of swaps done before the'
+    #                     ' other starts but got this:\n{}'
+    #                     ''.format('\n'.join(board_sequence)))
+    #
+    # @patch.object(State, '_disallow_state')
+    # def test_end_of_turns_stops_bad_states_with_Filtered(self, mock_disallow):
+    #     mock_disallow.return_value = True  # disallow all states
+    #     board = Board(self._board_string_two_paths)
+    #     state = State(board)
+    #     enough_turns_to_go_beyond_filtered = 2
+    #     eots = state.end_of_turns(absolute_turn_depth=
+    #                               enough_turns_to_go_beyond_filtered)
+    #     eots = list(eots)
+    #     # confirm that all results were filtered and tagged
+    #     self.assertTrue(all(eot.type == 'filtered' for eot in eots))
+    #
+    # # Convenience methods
+    # def test__leaves_within_depth_produces_exactly_leaves_within_depth(self):
+    #     depth = 2
+    #     root, leaves_within_depth, leaves_below_depth \
+    #         = self.produce_fake_simulation()
+    #     leaf_ids = [id(leaf) for leaf in root._leaves_within_depth(depth)]
+    #     # Safety confirmation that there are some leaves below depth 2 to ignore
+    #     if not leaves_below_depth:
+    #         self.fail('Expected to get a simulation with leaves below the'
+    #                   ' target depth but did not.')
+    #     # Confirm that the depth 2 leaves exactly match specification
+    #     leaf_ids_spec = [id(leaf) for leaf in leaves_within_depth]
+    #     self.assertItemsEqual(leaf_ids, leaf_ids_spec)
+    #
+    # # Special methods
+    # def test___str___shows_the_core_data_of_state_and_number_of_children(self):
+    #     board_string_spec = self._board_string_two_paths
+    #     board = Board(board_string_spec)
+    #     turn = 2
+    #     actions_remaining = 3
+    #     state = State(board=board, turn=turn,
+    #                   actions_remaining=actions_remaining)
+    #     transition_1 = BaseTransition()
+    #     transition_2 = BaseTransition()
+    #     state.attach(transition_1)
+    #     state.attach(transition_2)
+    #     state_string = str(state)
+    #     # confirm board
+    #     for line in board_string_spec.splitlines():
+    #         self.assertIn(line, state_string)
+    #     # confirm turn
+    #     turn_string_spec = '{} : turn'.format(turn)
+    #     self.assertIn(turn_string_spec, state_string)
+    #     # confirm actions remaining
+    #     ar_string_spec = '{} : actions remaining'.format(actions_remaining)
+    #     self.assertIn(ar_string_spec, state_string)
+    #     # confirm number of children
+    #     children_string_spec = '{} : children'.format(2)
+    #     self.assertIn(children_string_spec, state_string)
+    #
+    # def produce_fake_simulation(self):
+    #     """Produce a fake simulation.
+    #
+    #     Return: root, leaves_within_depth_2, leaves_below_depth_2
+    #     """
+    #     # create a tree with:
+    #     #   - level 2 leaves: 1 EOT, 1 state
+    #     #   - level 3 leaves: 1 EOT, 1 state
+    #     # make all the parts
+    #     root_t1 = State(turn=1)  # any state is fine
+    #     a_transition_t1 = ChainReaction()  # any transition is fine
+    #     a_state_t2 = State(turn=2)
+    #     a_transition_t2 = ChainReaction()
+    #     a_state_t3 = State(turn=3)
+    #     a_transition_t3 = ChainReaction()  # level 3 transition leaf
+    #     b_transition_t1 = ChainReaction()
+    #     b_state_t2 = State(turn=2)
+    #     b_transition_t2 = ChainReaction()
+    #     b_state_t3 = State(turn=3)  # level 3 state leaf
+    #     c_transition_t1 = ChainReaction()
+    #     c_state_t2 = State(turn=2)
+    #     c_transition_t2 = ChainReaction()  # level 2 transition leaf
+    #     d_transition_t1 = ChainReaction()
+    #     d_state_t2 = State(turn=2)  # level 2 state leaf
+    #     # build level 1 (no leaves)
+    #     root_t1.attach(a_transition_t1)
+    #     root_t1.attach(b_transition_t1)
+    #     root_t1.attach(c_transition_t1)
+    #     root_t1.attach(d_transition_t1)
+    #     # build level 2 (c and d are leaves)
+    #     a_transition_t1.graft_child(a_state_t2)
+    #     b_transition_t1.graft_child(b_state_t2)
+    #     c_transition_t1.graft_child(c_state_t2)
+    #     d_transition_t1.graft_child(d_state_t2)
+    #     a_state_t2.attach(a_transition_t2)
+    #     b_state_t2.attach(b_transition_t2)
+    #     c_state_t2.attach(c_transition_t2)
+    #     # build level 3 (a and b are leaves)
+    #     a_transition_t2.graft_child(a_state_t3)
+    #     b_transition_t2.graft_child(b_state_t3)
+    #     a_state_t3.attach(a_transition_t3)
+    #     leaves_within_2 = (c_transition_t2, d_state_t2)
+    #     leaves_below_2 = (a_transition_t3, b_state_t3)
+    #     return root_t1, leaves_within_2, leaves_below_2
 
-    def test_Swap___init___takes_and_stores_a_position_pair(self):
-        position_pair_spec = ((0, 0), (0, 1))
-        swap = Swap(position_pair_spec)
-        self.assertEqual(swap.position_pair, position_pair_spec)
 
-    def test_Swap_position_pair_is_read_only(self):
-        some_position_pair = ((0, 0), (0, 1))
-        another_position_pair = ((0, 0), (0, 1))
-        swap = Swap(some_position_pair)
-        self.assertRaises(AttributeError,
-                          setattr, swap, 'position_pair', another_position_pair)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class Test_Board(unittest.TestCase):
@@ -1178,6 +1071,203 @@ class Test_Tile(unittest.TestCase):
         # confirm failure of wrong types
         skull = Tile('s')
         self.assertFalse(skull.is_color())
+
+
+class Test_Transitions(unittest.TestCase):
+    def test_BaseTransition_is_instance_of_TreeNode_for_tree_behavior(self):
+        base_transition = BaseTransition()
+        self.assertIsInstance(base_transition, TreeNode)
+
+    def test_Swap___init___takes_and_stores_a_position_pair(self):
+        position_pair_spec = ((0, 0), (0, 1))
+        swap = Swap(position_pair_spec)
+        self.assertEqual(swap.position_pair, position_pair_spec)
+
+    def test_Swap_position_pair_is_read_only(self):
+        some_position_pair = ((0, 0), (0, 1))
+        another_position_pair = ((0, 0), (0, 1))
+        swap = Swap(some_position_pair)
+        self.assertRaises(AttributeError,
+                          setattr, swap, 'position_pair', another_position_pair)
+
+
+class Test_Actor(unittest.TestCase):
+    # Common data
+    __max_suffix = '_max'
+    attributes_for_copy = ['name', 'health', 'health' + __max_suffix]
+    for color_type in Test_Tile._color_types_spec:
+        attributes_for_copy.append(color_type)
+        attributes_for_copy.append(color_type + __max_suffix)
+    for unique_type in Test_Tile._unique_types_spec:
+        attributes_for_copy.append(unique_type)
+        attributes_for_copy.append(unique_type + __max_suffix)
+
+    def test_Actor_has_all_attributes_required_for_copy(self):
+        # super combined spec because of connectedness with copy
+        # confirms name, health, etc.
+        actor = generic_actor()
+        for attribute_name in self.attributes_for_copy:
+            confirm_attribute(actor, attribute_name)
+
+    def test_Actor_current_values_are_bound_by_zero_and_max(self):
+        base_original, maximum = 0, 10
+        base = (base_original, maximum)
+        current_max_types = ('health', 'r', 'g', 'b', 'y', 'x', 'm', 'h', 'c')
+        current_max_kwargs = {t: base for t in current_max_types}
+        actor = generic_actor(**current_max_kwargs)
+        # confirm nothing goes below zero
+        for t in current_max_types:
+            setattr(actor, t, -10)
+            value = getattr(actor, t)
+            self.assertGreaterEqual(value, 0)
+        # confirm nothing goes above max
+        for t in current_max_types:
+            setattr(actor, t, maximum + 2)
+            value = getattr(actor, t)
+            self.assertLessEqual(value, maximum)
+
+    def test_copy_returns_a_different_object_from_original(self):
+        actor = generic_actor()
+        actor_copy = actor.copy()
+        self.assertIsNot(actor_copy, actor)
+
+    def test_copy_of_actor_has_same_attributes(self):
+        actor = generic_actor()
+        actor_copy = actor.copy()
+        for attribute_name in self.attributes_for_copy:
+            copied_value = getattr(actor_copy, attribute_name)
+            original_value = getattr(actor, attribute_name)
+            self.assertEqual(copied_value, original_value,
+                             'Unexpectedly found different value ({}) between'
+                             ' actor ({}) and its copy ({})'
+                             ''.format(attribute_name,
+                                       original_value, copied_value))
+
+    def test_apply_manadrain_sets_current_mana_to_zero(self):
+        mana_types = ('r', 'g', 'b', 'y')
+        non_zero_mana = {mana_type: (50, 100) for mana_type in mana_types}
+        actor = generic_actor(**non_zero_mana)
+        # confirm before clearing just to be safe
+        for mana_type in mana_types:
+            mana_value = getattr(actor, mana_type)
+            self.assertGreater(mana_value, 0,
+                               'Unexpectedly found mana value of <= 0 for {}'
+                               ' when preparing for mana drain test.'
+                               ''.format(mana_type))
+        # clear and confirm
+        actor.apply_manadrain()
+        for mana_type in mana_types:
+            mana_value = getattr(actor, mana_type)
+            self.assertEqual(mana_value, 0,
+                             'Unexpectedly got nonzero ({}) mana value for {}'
+                             ' after applying mana drain.'
+                             ''.format(mana_value, mana_type))
+
+    def test_apply_tile_groups_raises_TypeError_if_cant_find_group_type(self):
+        actor = generic_actor()
+        # build a wildcard only group that has no group type
+        wildcard = Tile('2')
+        tile_groups = [(wildcard, wildcard, wildcard)]
+        # apply the groups and confirm increase
+        self.assertRaises(TypeError, actor.apply_tile_groups, tile_groups)
+
+    def test_apply_tile_groups_increases_color_and_unique_current_values(self):
+        base_value = 0
+        base = (base_value, 100)
+        actor = generic_actor(r=base, g=base, b=base, y=base,
+                              x=base, m=base, h=base, c=base)
+        # build a set of groups, one group of 3 tiles for each type
+        color_and_unique_types = ('r', 'g', 'b', 'y', 'x', 'm', 'h', 'c')
+        increase_spec = 3
+        tile_groups = [(Tile(t),) * increase_spec
+                       for t in color_and_unique_types]
+        # apply the groups and confirm increase
+        actor.apply_tile_groups(tile_groups)
+        for t in color_and_unique_types:
+            new_value = getattr(actor, t)
+            self.assertGreaterEqual(new_value, base_value + increase_spec)
+
+    def test_apply_tile_groups_multiplies_colors_by_wildcard_sum(self):
+        base_value = 0
+        base = (base_value, 100)
+        actor = generic_actor(r=base, g=base, b=base, y=base)
+        color_types = ('r', 'g', 'b', 'y')
+        four = Tile('4')
+        three = Tile('3')
+        increase_spec = 7
+        color_groups_with_wildcards = [(four, Tile(t), three)
+                                       for t in color_types]
+        actor.apply_tile_groups(color_groups_with_wildcards)
+        for t in color_types:
+            new_value = getattr(actor, t)
+            self.assertGreaterEqual(new_value, base_value + increase_spec)
+
+    def test_apply_tile_groups_returns_an_attack_for_skulls_or_skullbombs(self):
+        actor = generic_actor()
+        # build a set of groups, one group of 3 tiles for each type
+        skull = Tile('s')
+        skullbomb = Tile('*')
+        tile_groups = [(skull, skull, skullbomb)]
+        # apply the skulls and confirm the attack value
+        attack_value = actor.apply_tile_groups(tile_groups)
+        attack_value_spec = 1 + 1 + 5
+        self.assertGreaterEqual(attack_value, attack_value_spec)
+
+    def test_apply_attack_affects_current_health(self):
+        base = 50
+        actor = generic_actor(health=(base, 100))
+        attack = 10
+        # apply the attack and confirm that the health changed
+        actor.apply_attack(attack)
+        # assert:    base-attack <= health <= base
+        self.assertLess(actor.health, base)
+        self.assertGreaterEqual(actor.health, base - attack)
+
+
+# Helpers and simple factories
+def confirm_attribute(obj, attribute_name):
+    try:
+        getattr(obj, attribute_name)
+        return
+    except AttributeError:
+        pass
+    # do this outside of the try block to retain context
+    raise AttributeError('Unexpectedly failed to access {} on {}.'
+                         ''.format(attribute_name, obj))
+
+
+def generic_state(board=None, player=None, opponent=None,
+                  turn=1, actions_remaining=1):
+    """Simple factory to help keep tests short and focused."""
+    board = board or Board()
+    player = player or generic_actor(name='player')
+    opponent = opponent or generic_actor(name='opponent')
+    return State(board, player, opponent,
+                 turn, actions_remaining)
+
+
+def generic_actor(name=None, health=None,
+                  r=None, g=None, b=None, y=None,
+                  x=None, m=None, h=None, c=None):
+    """Simple factory to keep tests focused."""
+    # use a generator to ensure accuracy when checking values
+    def different_current_max():
+        current, maximum = 50, 100
+        while True:
+            current += 1
+            maximum += 1
+            yield current, maximum
+    val_gen = different_current_max()
+    health = health or val_gen.next()
+    r = r or val_gen.next()
+    g = g or val_gen.next()
+    b = b or val_gen.next()
+    y = y or val_gen.next()
+    x = x or val_gen.next()
+    m = m or val_gen.next()
+    h = h or val_gen.next()
+    c = c or val_gen.next()
+    return Actor(name, health, r, g, b, y, x, m, h, c)
 
 
 if __name__ == '__main__':
