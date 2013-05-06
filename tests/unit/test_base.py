@@ -1,241 +1,227 @@
 import unittest
 
-from pqhelper.base import State, Actor
-from pqhelper.base import BaseTransition, Swap
-from pqhelper.base import Board, Tile
+from mock import patch
+
+from pqhelper.base import Actor, Board, Tile
+from pqhelper.base import BaseTransition, Swap, ChainReaction, EOT, Filtered
+from pqhelper.base import Game, State
 
 from pqhelper.base import TreeNode
 
 
-    # # Test Parameters
-    # _board_string_two_paths = '........\n' \
-    #                           '........\n' \
-    #                           'g......g\n' \
-    #                           'g......g\n' \
-    #                           's......s\n' \
-    #                           's......s\n' \
-    #                           'xg....gx\n' \
-    #                           'rsrryysy'
-    #
-    # # Customizable Class attributes
-    # def test_class_holds_references_to_classes_of_Tile_Board_and_Actor(self):
-    #     try:
-    #         getattr(State, 'Tile')
-    #         getattr(State, 'Board')
-    #         getattr(State, 'Actor')
-    #     except Exception as e:
-    #         self.fail('Expected to find classes for the parts that state'
-    #                   ' uses but got this error: {}'.format(e))
-    #
-    # # Generating end_of_turns (core behavior)
-    # def test_end_of_turns_produces_exactly_EOTs_within_turn_depth(self):
-    #     board = Board(self._board_string_two_paths)
-    #     state = State(board)
-    #     eots = list(state.end_of_turns(absolute_turn_depth=1))
-    #     eot_board_strings = [str(eot.parent.board) for eot in eots]
-    #     # confirm that the real boards match the specification
-    #     # one is swap on left side, other is swap on right side
-    #     eot_board_strings_spec = ['........\n'
-    #                               '........\n'
-    #                               'g......g\n'
-    #                               'g......g\n'
-    #                               's......s\n'
-    #                               's......s\n'
-    #                               'x.....gx\n'
-    #                               'sg..yysy',
-    #
-    #                               '........\n'
-    #                               '........\n'
-    #                               'g......g\n'
-    #                               'g......g\n'
-    #                               's......s\n'
-    #                               's......s\n'
-    #                               'xg.....x\n'
-    #                               'rsrr..gs']
-    #     self.assertItemsEqual(eot_board_strings, eot_board_strings_spec,
-    #                           'Expected to produce exactly EOTs within the'
-    #                           ' turn limit:\n{}\n'
-    #                           'but got this:\n{}'
-    #                           ''.format('\n'.join(eot_board_strings_spec),
-    #                                     '\n'.join(eot_board_strings)))
-    #
-    # def test_end_of_turns_does_no_simulation_below_absolute_turn_depth(self):
-    #     board = Board(self._board_string_two_paths)
-    #     state = State(board)
-    #     turn_limit = 2
-    #     # use list to make sure all the results are generated / sim is done
-    #     list(state.end_of_turns(absolute_turn_depth=2))
-    #     leaves = [node.main for node in state._node.leaves]
-    #     for leaf in leaves:
-    #         if isinstance(leaf, State):
-    #             self.assertLessEqual(leaf.turn, turn_limit)
-    #         elif isinstance(leaf, BaseTransition):
-    #             self.assertLessEqual(leaf.parent.turn, turn_limit)
-    #
-    # def test_end_of_turns_produces_depth_before_breadth(self):
-    #     board = Board(self._board_string_two_paths)
-    #     state = State(board)
-    #     enough_turns_to_complete_either_side = 5
-    #     eots = state.end_of_turns(absolute_turn_depth=
-    #                               enough_turns_to_complete_either_side)
-    #     eots = list(eots)
-    #     board_sequence = [str(eot.parent.board) for eot in eots]
-    #     # confirm end of one set of actions comes before beginning of other
-    #     left_start = '........\n' \
-    #                  '........\n' \
-    #                  'g......g\n' \
-    #                  'g......g\n' \
-    #                  's......s\n' \
-    #                  's......s\n' \
-    #                  'x.....gx\n' \
-    #                  'sg..yysy'
-    #     left_end = '........\n' \
-    #                '........\n' \
-    #                '.......g\n' \
-    #                '.......g\n' \
-    #                '.......s\n' \
-    #                '.......s\n' \
-    #                '......gx\n' \
-    #                '.x..yysy'
-    #     right_start = '........\n' \
-    #                   '........\n' \
-    #                   'g......g\n' \
-    #                   'g......g\n' \
-    #                   's......s\n' \
-    #                   's......s\n' \
-    #                   'xg.....x\n' \
-    #                   'rsrr..gs'
-    #     right_end = '........\n' \
-    #                 '........\n' \
-    #                 'g.......\n' \
-    #                 'g.......\n' \
-    #                 's.......\n' \
-    #                 's.......\n' \
-    #                 'xg......\n' \
-    #                 'rsrr..x.'
-    #     left_start_index = board_sequence.index(left_start)
-    #     left_end_index = board_sequence.index(left_end)
-    #     right_start_index = board_sequence.index(right_start)
-    #     right_end_index = board_sequence.index(right_end)
-    #     left_end_before_right_start = left_end_index < right_start_index
-    #     right_end_before_left_start = right_end_index < left_start_index
-    #     self.assertTrue(left_end_before_right_start
-    #                     or right_end_before_left_start,
-    #                     'Expected to see one side of swaps done before the'
-    #                     ' other starts but got this:\n{}'
-    #                     ''.format('\n'.join(board_sequence)))
-    #
-    # @patch.object(State, '_disallow_state')
-    # def test_end_of_turns_stops_bad_states_with_Filtered(self, mock_disallow):
-    #     mock_disallow.return_value = True  # disallow all states
-    #     board = Board(self._board_string_two_paths)
-    #     state = State(board)
-    #     enough_turns_to_go_beyond_filtered = 2
-    #     eots = state.end_of_turns(absolute_turn_depth=
-    #                               enough_turns_to_go_beyond_filtered)
-    #     eots = list(eots)
-    #     # confirm that all results were filtered and tagged
-    #     self.assertTrue(all(eot.type == 'filtered' for eot in eots))
-    #
-    # # Convenience methods
-    # def test__leaves_within_depth_produces_exactly_leaves_within_depth(self):
-    #     depth = 2
-    #     root, leaves_within_depth, leaves_below_depth \
-    #         = self.produce_fake_simulation()
-    #     leaf_ids = [id(leaf) for leaf in root._leaves_within_depth(depth)]
-    #     # Safety confirmation that there are leaves below depth 2 to ignore
-    #     if not leaves_below_depth:
-    #         self.fail('Expected to get a simulation with leaves below the'
-    #                   ' target depth but did not.')
-    #     # Confirm that the depth 2 leaves exactly match specification
-    #     leaf_ids_spec = [id(leaf) for leaf in leaves_within_depth]
-    #     self.assertItemsEqual(leaf_ids, leaf_ids_spec)
-    #
-    # # Special methods
-    # def test___str___shows_the_core_data_and_number_of_children(self):
-    #     board_string_spec = self._board_string_two_paths
-    #     board = Board(board_string_spec)
-    #     turn = 2
-    #     actions_remaining = 3
-    #     state = State(board=board, turn=turn,
-    #                   actions_remaining=actions_remaining)
-    #     transition_1 = BaseTransition()
-    #     transition_2 = BaseTransition()
-    #     state.attach(transition_1)
-    #     state.attach(transition_2)
-    #     state_string = str(state)
-    #     # confirm board
-    #     for line in board_string_spec.splitlines():
-    #         self.assertIn(line, state_string)
-    #     # confirm turn
-    #     turn_string_spec = '{} : turn'.format(turn)
-    #     self.assertIn(turn_string_spec, state_string)
-    #     # confirm actions remaining
-    #     ar_string_spec = '{} : actions remaining'.format(actions_remaining)
-    #     self.assertIn(ar_string_spec, state_string)
-    #     # confirm number of children
-    #     children_string_spec = '{} : children'.format(2)
-    #     self.assertIn(children_string_spec, state_string)
-    #
-    # def produce_fake_simulation(self):
-    #     """Produce a fake simulation.
-    #
-    #     Return: root, leaves_within_depth_2, leaves_below_depth_2
-    #     """
-    #     # create a tree with:
-    #     #   - level 2 leaves: 1 EOT, 1 state
-    #     #   - level 3 leaves: 1 EOT, 1 state
-    #     # make all the parts
-    #     root_t1 = State(turn=1)  # any state is fine
-    #     a_transition_t1 = ChainReaction()  # any transition is fine
-    #     a_state_t2 = State(turn=2)
-    #     a_transition_t2 = ChainReaction()
-    #     a_state_t3 = State(turn=3)
-    #     a_transition_t3 = ChainReaction()  # level 3 transition leaf
-    #     b_transition_t1 = ChainReaction()
-    #     b_state_t2 = State(turn=2)
-    #     b_transition_t2 = ChainReaction()
-    #     b_state_t3 = State(turn=3)  # level 3 state leaf
-    #     c_transition_t1 = ChainReaction()
-    #     c_state_t2 = State(turn=2)
-    #     c_transition_t2 = ChainReaction()  # level 2 transition leaf
-    #     d_transition_t1 = ChainReaction()
-    #     d_state_t2 = State(turn=2)  # level 2 state leaf
-    #     # build level 1 (no leaves)
-    #     root_t1.attach(a_transition_t1)
-    #     root_t1.attach(b_transition_t1)
-    #     root_t1.attach(c_transition_t1)
-    #     root_t1.attach(d_transition_t1)
-    #     # build level 2 (c and d are leaves)
-    #     a_transition_t1.graft_child(a_state_t2)
-    #     b_transition_t1.graft_child(b_state_t2)
-    #     c_transition_t1.graft_child(c_state_t2)
-    #     d_transition_t1.graft_child(d_state_t2)
-    #     a_state_t2.attach(a_transition_t2)
-    #     b_state_t2.attach(b_transition_t2)
-    #     c_state_t2.attach(c_transition_t2)
-    #     # build level 3 (a and b are leaves)
-    #     a_transition_t2.graft_child(a_state_t3)
-    #     b_transition_t2.graft_child(b_state_t3)
-    #     a_state_t3.attach(a_transition_t3)
-    #     leaves_within_2 = (c_transition_t2, d_state_t2)
-    #     leaves_below_2 = (a_transition_t3, b_state_t3)
-    #     return root_t1, leaves_within_2, leaves_below_2
+class Test_Game(unittest.TestCase):
+    """Confirm that Game simulates a game of PQ."""
+    # Test Parameters
+    board_string_two_paths = '........\n'\
+                             '........\n'\
+                             'g......g\n'\
+                             'g......g\n'\
+                             's......s\n'\
+                             's......s\n'\
+                             'xg....gx\n'\
+                             'rsrryysy'
 
+    turn_1_eot_board_strings = ['........\n'
+                                '........\n'
+                                'g......g\n'
+                                'g......g\n'
+                                's......s\n'
+                                's......s\n'
+                                'x.....gx\n'
+                                'sg..yysy',
+                                '........\n'
+                                '........\n'
+                                'g......g\n'
+                                'g......g\n'
+                                's......s\n'
+                                's......s\n'
+                                'xg.....x\n'
+                                'rsrr..gs']
 
+    turn_2_left_eot_board_strings = ['........\n'
+                                     '........\n'
+                                     '.......g\n'
+                                     '.......g\n'
+                                     '.......s\n'
+                                     'g......s\n'
+                                     'g.....gx\n'
+                                     'xg..yysy',
+                                     '........\n'
+                                     '........\n'
+                                     'g......g\n'
+                                     'g......g\n'
+                                     's......s\n'
+                                     's......s\n'
+                                     'x......x\n'
+                                     'sg....gs']
 
+    def test_Game_has_internal_indicator_to_random_fill_boards_or_not(self):
+        game = generic_game()
+        confirm_attribute(game, 'random_fill')
 
+    # Run simulation
+    def test_ends_of_turn_raises_TypeError_if_not_exactly_one_arg(self):
+        game = generic_game()
+        # fail for zero args
+        generator = game.ends_of_turn()
+        self.assertRaises(TypeError, generator.next)
+        # fail for two args
+        root_state = generic_state()
+        eot = EOT(False)
+        generator = game.ends_of_turn(root=root_state, root_eot=eot)
+        self.assertRaises(TypeError, generator.next)
 
+    def test_ends_of_turn_raises_ValueError_for_non_root_state(self):
+        game = generic_game()
+        root_state = generic_state()
+        child_state = generic_state()
+        root_state.graft_child(child_state)
+        generator = game.ends_of_turn(root=child_state)
+        self.assertRaises(ValueError, generator.next)
 
+    def test_ends_of_turn_raises_TypeError_for_non_eot_transition(self):
+        game = generic_game()
+        non_eot_transition = ChainReaction()
+        generator = game.ends_of_turn(root_eot=non_eot_transition)
+        self.assertRaises(TypeError, generator.next)
 
+    def test_ends_of_turn_generates_all_leaves_as_EOT(self):
+        game = generic_game()
+        root = generic_state(board=Board(self.board_string_two_paths))
+        # try to complete generation by converting to list
+        ends_of_turn = list(game.ends_of_turn(root))
+        leaves = list(root.leaves)
+        # confirm leaves === generated ends of turn
+        self.assertItemsEqual(ends_of_turn, leaves)
+        # confirm all leaves are EOT
+        for result in leaves:
+            self.assertIsInstance(result, EOT)
 
+    def test_ends_of_turn_from_root_generates_2_branches(self):
+        game = generic_game()
+        root = generic_state(board=Board(self.board_string_two_paths))
+        # try to complete generation by converting to list
+        list(game.ends_of_turn(root=root))
+        # confirm leaves have correct boards
+        end_boards = [str(leaf.parent.board) for leaf in root.leaves]
+        self.assertItemsEqual(end_boards, self.turn_1_eot_board_strings,
+                              'Expected to get these end boards:\n{}\n{}\n'
+                              'but got these:\n{}'
+                              ''.format(self.turn_1_eot_board_strings[0],
+                                        self.turn_1_eot_board_strings[1],
+                                        '\n'.join(end_boards)))
 
+    def test_ends_of_turn_from_left_eot_generates_2_branches(self):
+        game = generic_game()
+        # simulate an eot
+        last = generic_state(board=Board(self.turn_1_eot_board_strings[0]),
+                             turn=1, actions_remaining=0)
+        eot = EOT(False)
+        last.graft_child(eot)
+        # provide the eot to the simulation and confirm the results are correct
+        list(game.ends_of_turn(root_eot=eot))
+        end_boards = [str(leaf.parent.board) for leaf in last.leaves]
+        self.assertItemsEqual(end_boards,
+                              self.turn_2_left_eot_board_strings,
+                              'Expected to get these end boards:\n{}\n{}\n'
+                              'but got these:\n{}'
+                              ''.format(self.turn_2_left_eot_board_strings[0],
+                                        self.turn_2_left_eot_board_strings[1],
+                                        '\n'.join(end_boards)))
+        
+    def test_ends_of_turn_generates_chain_reaction_result(self):
+        chain_board_string = '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             'x.......\n'\
+                             'r.......\n'\
+                             'r.......\n'\
+                             'xrx.....'
+        game = generic_game()
+        root = generic_state(board=Board(chain_board_string))
+        # run the simulation
+        list(game.ends_of_turn(root=root))
+        # confirm the following sequence
+        # root_state -> swap -> result_state -> chain -> result_state -> eot
+        tree_strings_spec = ('State', 'Swap', 'State', 'Chain', 'State', 'EOT')
+        tree_strings = list()
+        node = root
+        while node:
+            tree_strings.append(str(node))
+            try:
+                node = node.children[0]
+            except IndexError:
+                break
+        self.assertEqual(len(tree_strings), len(tree_strings_spec))  # safety
+        for s, s_spec in zip(tree_strings, tree_strings_spec):
+            self.assertIn(s_spec, s)
+        # confirm that the final board is empty (chain reaction succeeded
+        leaf = list(root.leaves)[0]
+        self.assertEqual(leaf.parent.board, Board())
 
+    def test_end_of_turns_attaches_manadrain_to_blank_root(self):
+        game = generic_game(False)
+        root = generic_state(board=Board())
+        list(game.ends_of_turn(root=root))
+        eot = root.children[0]
+        # confirm that there is only one new node
+        self.assertEqual(len(root.children), 1)
+        self.assertEqual(len(eot.children), 0)
+        # confirm that the node is manadrain
+        self.assertTrue(eot.is_mana_drain)
 
+    def test_end_of_turns_attaches_manadrain_to_mana_drain_sim_result(self):
+        end_of_turn_is_manadrain_board_string = '........\n'\
+                                                '........\n'\
+                                                '........\n'\
+                                                '........\n'\
+                                                '........\n'\
+                                                '........\n'\
+                                                '........\n'\
+                                                'rr.r....'
+        game = generic_game(False)
+        root = generic_state(board=Board(end_of_turn_is_manadrain_board_string))
+        list(game.ends_of_turn(root=root))
+        eot = list(root.leaves)[0]
+        # confirm that the node is manadrain
+        self.assertTrue(eot.is_mana_drain)
 
+    @patch('pqhelper.base.Game._disallow_state', lambda *args: True)
+    def test_end_of_turns_attaches_Filtered_when_a_state_fails_test(self):
+        game = generic_game(False)
+        root = generic_state(board=Board(self.board_string_two_paths))
+        list(game.ends_of_turn(root=root))
+        # confirm that the root was filtered and tagged
+        leaf = list(root.leaves)[0]
+        self.assertIsInstance(leaf, Filtered)
 
-
-
+    def test_end_of_turns_simulates_bonus_action_for_match_of_4(self):
+        bonus_action_board_string = '........\n'\
+                                    '........\n'\
+                                    '........\n'\
+                                    '........\n'\
+                                    '2.......\n'\
+                                    '2.......\n'\
+                                    'xrx.x...\n'\
+                                    '2mm.s...'
+        after_bonus_board_string = '........\n'\
+                                   '........\n'\
+                                   '........\n'\
+                                   '........\n'\
+                                   '........\n'\
+                                   '........\n'\
+                                   '........\n'\
+                                   '.mm.s...'
+        game = generic_game(False)
+        root = generic_state(board=Board(bonus_action_board_string))
+        list(game.ends_of_turn(root=root))
+        leaf = list(root.leaves)[0]
+        last_state = leaf.parent
+        # confirm still on turn 1
+        self.assertEqual(last_state.turn, 1)
+        # confirm board that is possible only after an extra action
+        self.assertEqual(str(last_state.board), after_bonus_board_string)
 
 
 class Test_State(unittest.TestCase):
@@ -271,6 +257,15 @@ class Test_State(unittest.TestCase):
         even_state = generic_state(turn=4)
         self.assertIs(even_state.passive, even_state.player)
         self.assertIs(even_state.active, even_state.opponent)
+
+    # special methods
+    def test_State_has_a_human_readable_string_with_primary_attributes(self):
+        state = generic_state()
+        required_strings = ('State', 'turn', 'actions remaining', 'board',
+                            'children')
+        state_string = str(state)
+        for required_string in required_strings:
+            self.assertIn(required_string, state_string)
 
 
 class Test_Board(unittest.TestCase):
@@ -826,6 +821,12 @@ class Test_Board(unittest.TestCase):
         board = Board(self._board_string_all_tiles)
         self.assertEqual(str(board), self._board_string_all_tiles)
 
+    # Special methods
+    def test___eq___returns_True_only_when_all_tiles_equal(self):
+        board_1 = Board()
+        board_2 = Board()
+        self.assertEqual(board_1, board_2)
+
 
 class Test_Tile(unittest.TestCase):
     # Test Parameters
@@ -1073,6 +1074,10 @@ class Test_Transitions(unittest.TestCase):
         base_transition = BaseTransition()
         self.assertIsInstance(base_transition, TreeNode)
 
+    def test_EOT_indicates_whether_it_is_mana_drain_or_not(self):
+        eot = EOT(True)
+        confirm_attribute(eot, 'is_mana_drain')
+
     def test_Swap___init___takes_and_stores_a_position_pair(self):
         position_pair_spec = ((0, 0), (0, 1))
         swap = Swap(position_pair_spec)
@@ -1084,6 +1089,14 @@ class Test_Transitions(unittest.TestCase):
         swap = Swap(some_position_pair)
         self.assertRaises(AttributeError,
                           setattr, swap, 'position_pair', another_position_pair)
+
+    # Special methods
+    def test_Transitions_have_a_human_readable_string(self):
+        transition = BaseTransition()
+        transition_str = str(transition)
+        required_strings = ('BaseTransition', '(children:')
+        for required_string in required_strings:
+            self.assertIn(required_string, transition_str)
 
 
 class Test_Actor(unittest.TestCase):
@@ -1229,6 +1242,19 @@ def confirm_attribute(obj, attribute_name):
     # do this outside of the try block to retain context
     raise AttributeError('Unexpectedly failed to access {} on {}.'
                          ''.format(attribute_name, obj))
+
+
+def generic_game(use_random_fill=False):
+    """Simple factory to help keep tests focused."""
+    return Game(use_random_fill)
+
+
+def generic_root_args(board=None, player=None, opponent=None,
+                      turn=1, actions_remaining=1):
+    board = board or Board()
+    player = player or generic_actor(name='player')
+    opponent = opponent or generic_actor(name='opponent')
+    return board, player, opponent, turn, actions_remaining
 
 
 def generic_state(board=None, player=None, opponent=None,
