@@ -111,10 +111,6 @@ class Game(object):
                 result_state.active.apply_tile_groups(destroyed_groups)
             result_state.passive.apply_attack(attack)
             swap.graft_child(result_state)
-            # hook for capture game optimizations. does nothing in base
-            if self._disallow_state(result_state):
-                result_state.graft_child(Filtered())
-                continue  # no more simulation for this filtered state
             yield result_state
 
     def _simulated_chain_result(self, potential_chain, already_used_bonus):
@@ -131,15 +127,17 @@ class Game(object):
         same as the original state received.
         """
         while potential_chain:
+            # hook for capture game optimizations. no effect in base
+            # warning: only do this ONCE for any given state or it will
+            # always filter the second time
+            if self._disallow_state(potential_chain):
+                potential_chain.graft_child(Filtered())
+                return None  # no more simulation for this filtered state
             result_board, destroyed_groups = \
                 potential_chain.board.execute_once(random_fill=
                                                    self.random_fill)
             # yield the state if nothing happened during execution (chain done)
             if not destroyed_groups:
-                # hook for capture game optimizations. no effect in base
-                if self._disallow_state(potential_chain):
-                    potential_chain.graft_child(Filtered())
-                    return None  # no more simulation for this filtered state
                 # yield this state as the final result of the chain
                 return potential_chain
             # attach the transition
