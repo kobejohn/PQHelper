@@ -160,7 +160,7 @@ class Test_Game(unittest.TestCase):
         leaf = list(root.leaves)[0]
         self.assertEqual(leaf.parent.board, Board())
 
-    def test_end_of_turns_attaches_manadrain_to_blank_root(self):
+    def test_end_of_turns_attaches_mana_drain_to_blank_root(self):
         game = generic_game(False)
         root = generic_state(board=Board())
         list(game.ends_of_turn(root=root))
@@ -193,6 +193,26 @@ class Test_Game(unittest.TestCase):
         root = generic_state(board=Board(self.board_string_two_paths))
         list(game.ends_of_turn(root=root))
         # confirm that the root was filtered and tagged
+        leaf = list(root.leaves)[0]
+        self.assertIsInstance(leaf, Filtered)
+
+    @patch('pqhelper.base.Game._disallow_state',
+           lambda self_, state: state.board.is_empty())
+    def test_end_of_turns_attaches_Filtered_when_a_chain_fails_test(self):
+        # the patch causes a failure only during the chain reaction part of sim
+        chain_board_string = '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             'x.......\n'\
+                             'r.......\n'\
+                             'r.......\n'\
+                             'xrx.....'
+        game = generic_game()
+        root = generic_state(board=Board(chain_board_string))
+        # run the simulation
+        list(game.ends_of_turn(root=root))
+        # confirm that the leaf is filtered, not EOT
         leaf = list(root.leaves)[0]
         self.assertIsInstance(leaf, Filtered)
 
