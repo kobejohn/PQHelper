@@ -580,9 +580,9 @@ class Board(object):
     def _random_fill(self):
         """Fill the board with random tiles based on the Tile class."""
         a = self._array
-        for position in self.positions():
-            if a[position].is_blank():
-                a[position] = Tile.random_tile()
+        for p, tile in self.positions_with_tile():
+            if tile.is_blank():
+                a[p] = Tile.random_tile()
 
     # Special Methods
     def __str__(self):
@@ -608,14 +608,14 @@ class Board(object):
         """
         a = self._array
         rows, cols = a.shape
-        for this_position in self.positions():
+        for this_position, tile in self.positions_with_tile():
             #produce horizontal swap for this position
             r, c = this_position
             if c < cols - 1:
                 other_position = (r, c + 1)
                 if self._swap_optimizer_allows(this_position, other_position):
                     yield (this_position, other_position)
-            #produce vertical swap for this position. not DRY but meh.
+            #produce vertical swap for this position. not DRY but maybe ok
             if r < rows - 1:
                 other_position = (r + 1, c)
                 if self._swap_optimizer_allows(this_position, other_position):
@@ -669,16 +669,17 @@ class Board(object):
         """Generate an independent copy of self."""
         return self.__class__(str(self))
 
-    def positions(self):
-        """Generate all positions as a tuple of (row,col)."""
-        # if desired, use it[0].item() to reference the content of the cell
-        it = numpy.nditer(self._array, flags=['multi_index', 'refs_ok'])
-        while not it.finished:
-            yield (it.multi_index[0], it.multi_index[1])
-            it.iternext()
+    def positions_with_tile(self):
+        """Generate all positions and tiles as tuples of (row,col), tile.
+
+        docstring to make my IDE stop assuming tile is a standard dtype. sorry!
+        :rtype : tuple
+        """
+        for p, tile in numpy.ndenumerate(self._array):
+            yield p, tile
 
     def is_empty(self):
-        return all(self._array[p].is_blank() for p in self.positions())
+        return all(tile.is_blank() for p, tile in self.positions_with_tile())
 
     # Delegated behavior to numpy.ndarray
     def __getitem__(self, item):

@@ -197,7 +197,7 @@ class Test_Game(unittest.TestCase):
         ends_of_turn = list(game.ends_of_turn(root=root))
         last_state_board = ends_of_turn[0].parent.board
         # confirm that the end state is full
-        for p in last_state_board.positions():
+        for p, tile in last_state_board.positions_with_tile():
             tile = last_state_board[p]
             self.assertFalse(tile.is_blank(),
                              'Unexpectedly found a blank when the board'
@@ -351,8 +351,7 @@ class Test_Board(unittest.TestCase):
     def test_random_start_board_produces_stable_full_board(self):
         board = Board.random_start_board()
         # Confirm it's full
-        for p in board.positions():
-            tile = board[p]
+        for p, tile in board.positions_with_tile():
             self.assertFalse(tile.is_blank(),
                              'Unexpectedly found a blank when the start board'
                              ' should be full:\n{}'.format(board))
@@ -782,8 +781,8 @@ class Test_Board(unittest.TestCase):
             self.fail('Expected the starting board to be empty for testing but'
                       ' got this board:\n{}'.format(board))
         board._random_fill()
-        for p in board.positions():
-            self.assertFalse(board[p].is_blank())
+        for p, tile in board.positions_with_tile():
+            self.assertFalse(tile.is_blank())
 
     def test_existing_tiles_remain_after_random_fill(self):
         #prepare some positioned tiles
@@ -859,7 +858,7 @@ class Test_Board(unittest.TestCase):
         for row in range(8):
             for col in range(8):
                 positions_spec.append((row, col))
-        positions = list(board.positions())
+        positions = [p for p, tile in board.positions_with_tile()]
         self.assertItemsEqual(positions, positions_spec,
                               'Expected to get all possible coordinates in an'
                               '8x8 grid:\n{}\nbut got'
@@ -869,8 +868,8 @@ class Test_Board(unittest.TestCase):
         blank = Tile('.')
         board = Board()
         # make sure all positions are blank
-        for position in board.positions():
-            board[position] = blank
+        for p, tile in board.positions_with_tile():
+            board[p] = blank
         self.assertTrue(board.is_empty())
 
     def test_str_returns_8x8_lines_with_EOL_showing_type_for_each_tile(self):
