@@ -1304,14 +1304,6 @@ def generic_game(use_random_fill=False):
     return Game(use_random_fill)
 
 
-def generic_root_args(board=None, player=None, opponent=None,
-                      turn=1, actions_remaining=1):
-    board = board or Board()
-    player = player or generic_actor(name='player')
-    opponent = opponent or generic_actor(name='opponent')
-    return board, player, opponent, turn, actions_remaining
-
-
 def generic_state(board=None, player=None, opponent=None,
                   turn=1, actions_remaining=1):
     """Simple factory to help keep tests short and focused."""
