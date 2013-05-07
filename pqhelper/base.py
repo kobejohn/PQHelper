@@ -198,8 +198,8 @@ class Game(object):
         """Apply mana drain effects to this state, attach a mana drain EOT
         and return the mana drain EOT."""
         # clear all mana
-        mana_drain_state.player.apply_manadrain()
-        mana_drain_state.opponent.apply_manadrain()
+        mana_drain_state.player.apply_mana_drain()
+        mana_drain_state.opponent.apply_mana_drain()
         # force change of turn
         mana_drain_state.actions_remaining = 0
         # randomize the board if this game uses random fill
@@ -702,7 +702,7 @@ class Actor(object):
         c = self.c, self.c_max
         return self.__class__(self.name, health, r, g, b, y, x, m, h, c)
 
-    def apply_manadrain(self):
+    def apply_mana_drain(self):
         """Clear current mana values."""
         self.r = self.g = self.b = self.y = 0
 

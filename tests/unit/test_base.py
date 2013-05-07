@@ -168,23 +168,24 @@ class Test_Game(unittest.TestCase):
         # confirm that there is only one new node
         self.assertEqual(len(root.children), 1)
         self.assertEqual(len(eot.children), 0)
-        # confirm that the node is manadrain
+        # confirm that the node is mana_drain
         self.assertTrue(eot.is_mana_drain)
 
-    def test_end_of_turns_attaches_manadrain_to_mana_drain_sim_result(self):
-        end_of_turn_is_manadrain_board_string = '........\n'\
-                                                '........\n'\
-                                                '........\n'\
-                                                '........\n'\
-                                                '........\n'\
-                                                '........\n'\
-                                                '........\n'\
-                                                'rr.r....'
+    def test_end_of_turns_attaches_mana_drain_to_mana_drain_sim_result(self):
+        end_of_turn_is_mana_drain_board_string = '........\n'\
+                                                 '........\n'\
+                                                 '........\n'\
+                                                 '........\n'\
+                                                 '........\n'\
+                                                 '........\n'\
+                                                 '........\n'\
+                                                 'rr.r....'
         game = generic_game(False)
-        root = generic_state(board=Board(end_of_turn_is_manadrain_board_string))
+        board = Board(end_of_turn_is_mana_drain_board_string)
+        root = generic_state(board=board)
         list(game.ends_of_turn(root=root))
         eot = list(root.leaves)[0]
-        # confirm that the node is manadrain
+        # confirm that the node is mana_drain
         self.assertTrue(eot.is_mana_drain)
 
     @patch('pqhelper.base.Game._disallow_state', lambda *args: True)
@@ -1171,7 +1172,7 @@ class Test_Actor(unittest.TestCase):
                              ''.format(attribute_name,
                                        original_value, copied_value))
 
-    def test_apply_manadrain_sets_current_mana_to_zero(self):
+    def test_apply_mana_drain_sets_current_mana_to_zero(self):
         mana_types = ('r', 'g', 'b', 'y')
         non_zero_mana = {mana_type: (50, 100) for mana_type in mana_types}
         actor = generic_actor(**non_zero_mana)
@@ -1183,7 +1184,7 @@ class Test_Actor(unittest.TestCase):
                                ' when preparing for mana drain test.'
                                ''.format(mana_type))
         # clear and confirm
-        actor.apply_manadrain()
+        actor.apply_mana_drain()
         for mana_type in mana_types:
             mana_value = getattr(actor, mana_type)
             self.assertEqual(mana_value, 0,
