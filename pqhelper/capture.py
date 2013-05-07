@@ -1,56 +1,71 @@
 from pqhelper import base
 
 
-class _DuplicateTree(base.TreeNode):
-    def __init__(self, tile=None):
-        super(_DuplicateTree, self).__init__(tile=tile)
+def capture(board_string):
+    """Try to solve the board described by board_string.
 
-    def find_or_graft(self, board):
-        """Build a tree with various tiles for each position...."""
-        node = self
-        exact_match = True  # assume same until find a difference
-        # compare each position
-        for p, new_tile in board.positions_with_tile():
-            found_tile = False  # assume no tile in same position until found
-            for child in node.children:
-                if child.tile == new_tile:
-                    # same tile found in this position --> continue this branch
-                    node = child
-                    found_tile = True
+    Return tuple of swaps in the order required to solve the board.
+    """
+    game = Game()
+    v = (0, 0)
+    stub_actor = base.Actor('capture', v, v, v, v, v, v, v, v, v)
+    root = base.State(base.Board(board_string), stub_actor, stub_actor,
+                      turn=1, actions_remaining=1)
+    # prime the job stack
+    eot_stack = [root]
+    solution_node = None
+    while eot_stack:
+        start_eot = eot_stack.pop()
+        # special case: handle the root once
+        if start_eot is root:
+            kw_root = {'root': start_eot}
+        else:
+            kw_root = {'root_eot': start_eot}
+        for eot in game.ends_of_turn(**kw_root):
+            # check for a solution
+            if eot.is_mana_drain:  # this takes less computation than board
+                if eot.parent.board.is_empty():
+                    solution_node = eot
                     break
-            if found_tile:
-                pass  # go on to the next position
+            # not a solution and not mana drain (ignore non-solution mana drain)
             else:
-                # different tile --> start new branch and mark not exact match
-                child = _DuplicateTree(new_tile)
-                node.graft_child(child)
-                node = child
-                exact_match = False  # this will get set many times. no problem
-        return exact_match
+                # more work to do looking for a solution
+                eot_stack.append(eot)
+        if solution_node:
+            break
+    solution_sequence = list()  # empty sequence (no solution) by default
+    if solution_node:
+        node = solution_node
+        while node:
+            # record each swap in the path to the root
+            try:
+                solution_sequence.append(node.position_pair)
+            except AttributeError:
+                pass  # whoops. not a Swap node
+            node = node.parent
+    return tuple(reversed(solution_sequence))
 
 
 class Game(base.Game):
-    _duplicate_root = _DuplicateTree()
-
-    @classmethod
-    def clear_duplicate_tree(cls):
-        for child in cls._duplicate_root.children:
-            child.trim()
-
     def __init__(self):
         use_random_fill = False
         super(Game, self).__init__(use_random_fill)
+        self._duplicate_root = _DuplicateTree()
 
     def _disallow_state(self, state):
         """Disallow states that are not useful to continue simulating."""
-        dissallow_methods = (self.__duplicate_board, self.__impossible_by_count)
-        return any(dissallow(state) for dissallow in dissallow_methods)
+        disallow_methods = (self._is_duplicate_board,
+                            self._is_impossible_by_count)
+        for disallow_method in disallow_methods:
+            if disallow_method(state):
+                return True
+        return False  # just to be explicit. allow if can't fail it
 
-    def __duplicate_board(self, state):
+    def _is_duplicate_board(self, state):
         """Disallow any board that has been simulated elsewhere."""
         return self._duplicate_root.find_or_graft(state.board)
 
-    def __impossible_by_count(self, state):
+    def _is_impossible_by_count(self, state):
         """Disallow any board that has insufficient tile count to solve."""
         # count all the tile types and name them for readability
         counts = {tile_type: 0 for tile_type in base.Tile._all_types}
@@ -88,25 +103,39 @@ class Game(base.Game):
         return False
 
 
-# def capture(board_string):
-#     """Try to solve the board described by board_string.
-#
-#     Return tuple of swaps in the order required to solve the board.
-#     """
-#     _State.clear_duplicate_tree()
-#     state = _State(_Board(board_string))
-#     solution_sequence = list()
-#     enough_turns = 20
-#     for eot in state.end_of_turns(absolute_turn_depth=enough_turns):
-#         if eot.parent.board.is_empty():
-#             node = eot._node
-#             while node:
-#                 if node.main.type == 'swap':
-#                     solution_sequence.append(node.main.position_pair)
-#                 node = node.parent
-#             break
-#     _State.clear_duplicate_tree()
-#     return tuple(reversed(solution_sequence))
+class _DuplicateTree(base.TreeNode):
+    def __init__(self, tile=None):
+        super(_DuplicateTree, self).__init__(tile=tile)
+
+    def find_or_graft(self, board):
+        """Build a tree with each level corresponding to a fixed position on
+        board. A path of tiles is stored for each board. If any two boards
+        have the same path, then they are the same board. If there is any
+        difference, a new branch will be created to store that path.
+
+        Return: True if board already exists in the tree; False otherwise
+
+        """
+        is_duplicate_board = True  # assume same until find a difference
+        # compare each position
+        node = self
+        for p, new_tile in board.positions_with_tile():
+            found_tile = False  # assume no tile in same position until found
+            for child in node.children:
+                if child.tile == new_tile:
+                    # same tile found in this position --> continue this branch
+                    node = child
+                    found_tile = True
+                    break
+            if found_tile:
+                pass  # go on to the next position
+            else:
+                # different tile --> start new branch and mark not exact match
+                child = _DuplicateTree(new_tile)
+                node.graft_child(child)
+                node = child
+                is_duplicate_board = False  # this will get set many times. ok
+        return is_duplicate_board
 
 
 if __name__ == '__main__':

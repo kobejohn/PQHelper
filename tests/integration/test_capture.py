@@ -1,7 +1,7 @@
 import unittest
 
 from pqhelper.base import Board, State, Actor
-from pqhelper.capture import Game
+from pqhelper.capture import Game, capture
 
 
 class Test_capture(unittest.TestCase):
@@ -17,10 +17,40 @@ class Test_capture(unittest.TestCase):
         solution = capture(board_string)
         # confirm that the solution matches the specification
         solution_spec = (((7, 6), (7, 7)), ((7, 6), (7, 7)))
-        self.assertSequenceEqual(solution, solution_spec)
+        self.assertSequenceEqual(solution, solution_spec,
+                                 'Expected to get this solution:\n{}\nbut got'
+                                 ' this:\n{}'
+                                 ''.format(solution_spec, solution))
 
 
 class Test_Capture_Game(unittest.TestCase):
+    def test__disallow_state_allows_non_duplicate_boards(self):
+        board_string_1 = '........\n' \
+                         '........\n' \
+                         '........\n' \
+                         '........\n' \
+                         '....m...\n' \
+                         '....m...\n' \
+                         '....s...\n' \
+                         'ss..m..s'
+        board_string_2 = '........\n' \
+                         '........\n' \
+                         '........\n' \
+                         '........\n' \
+                         '....m...\n' \
+                         '....m...\n' \
+                         'rr..s...\n' \
+                         'ssr.m..s'
+        game = generic_game()
+        root = generic_state(board=Board(board_string_1))
+        # simulate the game
+        list(game.ends_of_turn(root=root))
+        # confirm that the game will now disallow a state with the same result
+        non_duplicate_state = generic_state(board=Board(board_string_2))
+        self.assertFalse(game._disallow_state(non_duplicate_state),
+                         'Unexpectedly filtered a non-duplicate board:\n{}'
+                         ''.format(non_duplicate_state))
+
     def test__disallow_state_disallows_duplicate_boards(self):
         board_string = '........\n' \
                        '........\n' \
@@ -65,6 +95,10 @@ class Test_Capture_Game(unittest.TestCase):
                          'Unexpectedly failed state that has at least one'
                          ' skullbomb and enough total skulls to explode it:\n{}'
                          ''.format(state.board))
+        self.assertFalse(game._is_impossible_by_count(state),
+                         'Unexpectedly failed state that has at least one'
+                         ' skullbomb and enough total skulls to explode it:\n{}'
+                         ''.format(state.board))
 
     def test__disallow_state_allows_wildcard_with_enough_of_any_color(self):
         board_string = '........\n' \
@@ -78,6 +112,10 @@ class Test_Capture_Game(unittest.TestCase):
         game = generic_game()
         state = generic_state(Board(board_string))
         self.assertFalse(game._disallow_state(state),
+                         'Unexpectedly failed state that has at least one'
+                         ' wildcard and enough of any color to use it:\n{}'
+                         ''.format(state.board))
+        self.assertFalse(game._is_impossible_by_count(state),
                          'Unexpectedly failed state that has at least one'
                          ' wildcard and enough of any color to use it:\n{}'
                          ''.format(state.board))
@@ -123,6 +161,9 @@ class Test_Capture_Game(unittest.TestCase):
         for board_string in board_strings:
             state = generic_state(board=Board(board_string))
             self.assertTrue(game._disallow_state(state),
+                            'This board unexpectedly passed impossible count:'
+                            '\n{}'.format(board_string))
+            self.assertTrue(game._is_impossible_by_count(state),
                             'This board unexpectedly passed impossible count:'
                             '\n{}'.format(board_string))
 
