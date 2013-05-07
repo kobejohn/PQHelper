@@ -188,6 +188,26 @@ class Test_Game(unittest.TestCase):
         # confirm that the node is mana_drain
         self.assertTrue(eot.is_mana_drain)
 
+    def test_ends_of_turn_resets_last_board_to_random_start_on_mana_drain(self):
+        use_random_fill = True
+        game = generic_game(use_random_fill)
+        empty_board = Board()
+        root = generic_state(board=empty_board)
+        # run the simulation
+        ends_of_turn = list(game.ends_of_turn(root=root))
+        last_state_board = ends_of_turn[0].parent.board
+        # confirm that the end state is full
+        for p in last_state_board.positions():
+            tile = last_state_board[p]
+            self.assertFalse(tile.is_blank(),
+                             'Unexpectedly found a blank when the board'
+                             ' should be full:\n{}'.format(last_state_board))
+        # confirm that the end state is stable
+        x, destructions = last_state_board.execute_once()
+        self.assertFalse(destructions,
+                         'Unexpectedly found destructions when the board'
+                         ' should be stable')
+
     @patch('pqhelper.base.Game._disallow_state', lambda *args: True)
     def test_end_of_turns_attaches_Filtered_when_a_state_fails_test(self):
         game = generic_game(False)
@@ -326,6 +346,21 @@ class Test_Board(unittest.TestCase):
     def test___init___with_a_board_string_of_8x8_with_EOLs_works(self):
         board = Board(self._board_string_all_tiles)
         self.assertEqual(str(board), self._board_string_all_tiles)
+
+    # Class methods
+    def test_random_start_board_produces_stable_full_board(self):
+        board = Board.random_start_board()
+        # Confirm it's full
+        for p in board.positions():
+            tile = board[p]
+            self.assertFalse(tile.is_blank(),
+                             'Unexpectedly found a blank when the start board'
+                             ' should be full:\n{}'.format(board))
+        # Confirm it's stable
+        x, destructions = board.execute_once()
+        self.assertFalse(destructions,
+                         'Unexpectedly found destructions when the start board'
+                         ' should be stable')
 
     # Indexing and Shape of grid
     def test_indexing_works_for_grid_of_8_rows_and_8_columns(self):

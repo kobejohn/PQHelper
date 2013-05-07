@@ -204,7 +204,8 @@ class Game(object):
         mana_drain_state.actions_remaining = 0
         # randomize the board if this game uses random fill
         if self.random_fill:
-            mana_drain_state.board.__class__.random_start_board()
+            random_start_board = mana_drain_state.board.random_start_board()
+            mana_drain_state.board = random_start_board
         # attach the mana drain EOT
         mana_drain = EOT(True)
         mana_drain_state.graft_child(mana_drain)
@@ -347,6 +348,18 @@ class Board(object):
                 row_string = row_string.strip()
                 for col, tile_character in enumerate(row_string):
                     self._array[row, col] = Tile.singleton(tile_character)
+
+    # Class methods
+    @classmethod
+    def random_start_board(cls):
+        """Produce a full, stable start board with random tiles."""
+        board = cls()
+        board._random_fill()
+        destructions = True  # prime the loop
+        while destructions:
+            board, destructions = board.execute_once()
+            board._random_fill()
+        return board
 
     # Execution Methods (Core behavior)
     def execute_once(self, swap=None,
