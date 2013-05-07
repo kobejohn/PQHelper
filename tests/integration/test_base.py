@@ -93,17 +93,17 @@ class Test_Game(unittest.TestCase):
         leaves = list(root.leaves)
         # confirm leaves === generated ends of turn
         self.assertItemsEqual(ends_of_turn, leaves)
-        # confirm all leaves are EOT
-        for result in leaves:
+        # confirm all supposed ends of turn are actually EOT
+        for result in ends_of_turn:
             self.assertIsInstance(result, EOT)
 
     def test_ends_of_turn_from_root_generates_2_branches(self):
         game = generic_game()
         root = generic_state(board=Board(self.board_string_two_paths))
         # try to complete generation by converting to list
-        list(game.ends_of_turn(root=root))
-        # confirm leaves have correct boards
-        end_boards = [str(leaf.parent.board) for leaf in root.leaves]
+        eots = list(game.ends_of_turn(root=root))
+        # confirm eots have correct boards
+        end_boards = [str(eot.parent.board) for eot in eots]
         self.assertItemsEqual(end_boards, self.turn_1_eot_board_strings,
                               'Expected to get these end boards:\n{}\n{}\n'
                               'but got these:\n{}'
@@ -119,8 +119,8 @@ class Test_Game(unittest.TestCase):
         eot = EOT(False)
         last.graft_child(eot)
         # provide the eot to the simulation and confirm the results are correct
-        list(game.ends_of_turn(root_eot=eot))
-        end_boards = [str(leaf.parent.board) for leaf in last.leaves]
+        eots = list(game.ends_of_turn(root_eot=eot))
+        end_boards = [str(eot.parent.board) for eot in eots]
         self.assertItemsEqual(end_boards,
                               self.turn_2_left_eot_board_strings,
                               'Expected to get these end boards:\n{}\n{}\n'
@@ -141,7 +141,7 @@ class Test_Game(unittest.TestCase):
         game = generic_game()
         root = generic_state(board=Board(chain_board_string))
         # run the simulation
-        list(game.ends_of_turn(root=root))
+        eots = list(game.ends_of_turn(root=root))
         # confirm the following sequence
         # root_state -> swap -> result_state -> chain -> result_state -> eot
         tree_strings_spec = ('State', 'Swap', 'State', 'Chain', 'State', 'EOT')
@@ -157,7 +157,7 @@ class Test_Game(unittest.TestCase):
         for s, s_spec in zip(tree_strings, tree_strings_spec):
             self.assertIn(s_spec, s)
         # confirm that the final board is empty (chain reaction succeeded
-        leaf = list(root.leaves)[0]
+        leaf = eots[0]
         self.assertEqual(leaf.parent.board, Board())
 
     def test_end_of_turns_attaches_mana_drain_to_blank_root(self):
@@ -183,8 +183,8 @@ class Test_Game(unittest.TestCase):
         game = generic_game(False)
         board = Board(end_of_turn_is_mana_drain_board_string)
         root = generic_state(board=board)
-        list(game.ends_of_turn(root=root))
-        eot = list(root.leaves)[0]
+        eots = list(game.ends_of_turn(root=root))
+        eot = eots[0]
         # confirm that the node is mana_drain
         self.assertTrue(eot.is_mana_drain)
 
@@ -256,9 +256,8 @@ class Test_Game(unittest.TestCase):
                                    '.mm.s...'
         game = generic_game(False)
         root = generic_state(board=Board(bonus_action_board_string))
-        list(game.ends_of_turn(root=root))
-        leaf = list(root.leaves)[0]
-        last_state = leaf.parent
+        eots = list(game.ends_of_turn(root=root))
+        last_state = eots[0].parent
         # confirm still on turn 1
         self.assertEqual(last_state.turn, 1)
         # confirm board that is possible only after an extra action
