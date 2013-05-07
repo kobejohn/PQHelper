@@ -129,7 +129,7 @@ class Test_Capture_Game(unittest.TestCase):
 
 def generic_game():
     """Simple factory to help keep tests focused."""
-    return Game(False)
+    return Game()
 
 
 def generic_state(board=None, turn=1, actions_remaining=1):

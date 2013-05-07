@@ -37,6 +37,10 @@ class Game(base.Game):
         for child in cls._duplicate_root.children:
             child.trim()
 
+    def __init__(self):
+        use_random_fill = False
+        super(Game, self).__init__(use_random_fill)
+
     def _disallow_state(self, state):
         """Disallow states that are not useful to continue simulating."""
         dissallow_methods = (self.__duplicate_board, self.__impossible_by_count)
