@@ -3,6 +3,10 @@ import cProfile
 from pqhelper import capture
 
 
+def main():
+    cProfile.run('test_solution(giant_rat)')
+
+
 def test_solution(board_string):
     print capture.capture(board_string)
 
@@ -56,4 +60,6 @@ easy = '''
 ....rr.r
 ..rryyry'''
 
-cProfile.run('test_solution(catapult)')
+
+if __name__ == '__main__':
+    main()
