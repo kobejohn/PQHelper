@@ -263,6 +263,100 @@ class Test_Game(unittest.TestCase):
         # confirm board that is possible only after an extra action
         self.assertEqual(str(last_state.board), after_bonus_board_string)
 
+    # Breadth-First whole turn simulation
+    def test_ends_of_whole_next_turn_raises_ValueError_for_non_root(self):
+        # confirm node with parent fails
+        game = generic_game()
+        root = generic_state()
+        child = generic_state()
+        root.graft_child(child)
+        self.assertRaises(ValueError, game.ends_of_next_whole_turn(child).next)
+
+    def test_ends_of_whole_next_turn_generates_all_results_per_turn(self):
+        game = generic_game()
+        root = generic_state(board=Board(self.board_string_two_paths))
+        # generate each level and confirm counts at the end of each
+        # this was confirmed on paper. each side of the board has only
+        # one way to be swapped each turn, so has an easy pattern
+        results_per_turn_spec = {1: 2,
+                                 2: 4,
+                                 3: 8,
+                                 4: 14,
+                                 5: 20,
+                                 6: 20,
+                                 7: 0}  # ignores mana drains
+        eots = tuple()  # just to satisfy the IDE
+        # check each turn
+        for i in range(1, len(results_per_turn_spec) + 1):
+            eots = list(game.ends_of_next_whole_turn(root))
+            eot_len = len(eots)
+            eot_len_spec = results_per_turn_spec[i]
+            self.assertEqual(eot_len, eot_len_spec,
+                             'Unexpectedly found {} results for turn {}'
+                             ' instead of expected {} results.'
+                             ''.format(eot_len, i, eot_len_spec))
+        # confirm content of final ends of turn :64 of the same mana drain
+        final_board_string = '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '.x....x.'
+        for eot in eots:
+            self.assertEqual(str(eot.parent.board), final_board_string,
+                             'Unexpectedly got this end of turn board:\n{}'
+                             '\nbut was expecting this one:\n{}'
+                             ''.format(str(eot.parent.board),
+                                       final_board_string))
+
+    # Depth-First continuous simulation
+    def test_ends_of_turn_by_depth_raises_ValueError_for_non_root(self):
+        # confirm node with parent fails
+        game = generic_game()
+        root = generic_state()
+        child = generic_state()
+        root.graft_child(child)
+        self.assertRaises(ValueError, game.ends_of_turn_by_depth(child).next)
+
+    def test_ends_of_turn_by_depth_generates_all_possible_ends_of_turn(self):
+        game = generic_game()
+        root = generic_state(board=Board(self.board_string_two_paths))
+        # generate all ends of turn and confirm the total number
+        # this was confirmed on paper. each side of the board has only
+        # one way to be swapped each turn, so has an easy pattern
+        results_per_turn_spec = {1: 2,
+                                 2: 4,
+                                 3: 8,
+                                 4: 14,
+                                 5: 20,
+                                 6: 20}
+        eots = list(game.ends_of_turn_by_depth(root))
+        eot_len = len(eots)
+        eot_len_spec = sum(results_per_turn_spec.values())
+        self.assertEqual(eot_len, eot_len_spec,
+                         'Unexpectedly found {} total results instead of {} for'
+                         'this board:\n{}'.format(eot_len, eot_len_spec,
+                                                  self.board_string_two_paths))
+        # confirm that the final board appears 20 times
+        final_board_string = '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '.x....x.'
+        final_eots = filter(lambda x: x.is_mana_drain,
+                            eots)
+        for final_eot in final_eots:
+            self.assertEqual(str(final_eot.parent.board), final_board_string,
+                             'Unexpectedly got this end of turn board:\n{}'
+                             '\nbut was expecting this one:\n{}'
+                             ''.format(str(final_eot.parent.board),
+                                       final_board_string))
+
 
 class Test_State(unittest.TestCase):
     # Simulation tree behavior

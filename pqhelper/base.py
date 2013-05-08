@@ -71,6 +71,78 @@ class Game(object):
             else:
                 pass
 
+    def ends_of_next_whole_turn(self, root):
+        """Simulate one complete turn to completion and generate each end of
+        turn reached during the simulation.
+
+        Note on mana drain:
+        Generates but does not continue simulation of mana drains.
+
+        Arguments:
+        root: a start state with no parent
+        """
+        # simple confirmation that the root is actually a root.
+        # otherwise it may seem to work but would be totally out of spec
+        if root.parent:
+            raise ValueError('Unexpectedly received a node with a parent for'
+                             ' root:\n{}'.format(root))
+        # build the list of eots (or just the root if first turn) to be run
+        leaves = list(root.leaves)
+        kw_starts = list()
+        if leaves[0] is root:
+            # build ends of state kwargs as only the root
+            kw_starts.append({'root': root})
+        else:
+            # build ends of state kwargs as eots in the tree
+            for leaf in leaves:
+                # ignore mana drains
+                if not leaf.is_mana_drain:
+                    kw_starts.append({'root_eot': leaf})
+        # run a single turn for each starting point
+        for kw_start in kw_starts:
+            for eot in self.ends_of_one_state(**kw_start):
+                yield eot
+
+    def ends_of_turn_by_depth(self, root):
+        """Simulate the root depth-first and generate all ends of turn along
+        the way.
+
+        Arguments:
+        root: a start state with no parent
+
+        Note on mana drain:
+        Generates but does not continue simulation of mana drains.
+
+        Note on run time:
+        This simulates a complete turn for each eot provided, rather than
+        just one branch at a time. The method will only stop generating
+        when all possibilities have been simulated or filtered.
+
+        Warning on run time:
+        If random fill is used together with this method, it could easily
+        run virtually forever due to the huge number of possibilities it
+        introduces.
+        """
+        # simple confirmation that the root is actually a root.
+        # otherwise it may seem to work but would be totally out of spec
+        if root.parent:
+            raise ValueError('Unexpectedly received a node with a parent for'
+                             ' root:\n{}'.format(root))
+        # run a single turn for each eot from a stack
+        job_stack = [root]
+        while job_stack:
+            start_eot = job_stack.pop()
+            # special case: handle the root once
+            if start_eot is root:
+                kw_root = {'root': start_eot}
+            else:
+                kw_root = {'root_eot': start_eot}
+            for eot in self.ends_of_one_state(**kw_root):
+                # only continue simulating non-mana drains
+                if not eot.is_mana_drain:
+                    job_stack.append(eot)
+                yield eot  # yield all eots including mana drains
+
     # Internal methods
     def _argument_gauntlet(self, eot, root):
         # confirm exactly one argument received
