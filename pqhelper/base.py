@@ -103,9 +103,14 @@ class Game(object):
             for eot in self.ends_of_one_state(**kw_start):
                 yield eot
 
-    def ends_of_turn_by_depth(self, root):
-        """Simulate the root depth-first and generate all ends of turn along
-        the way.
+    def all_ends_of_turn(self, root):
+        """Simulate the root and continue generating ends of turn until
+        everything has reached mana drain.
+
+        Warning on random fill:
+        If random fill is used together with this method, it will generate
+        basically forever due to the huge number of possibilities it
+        introduces.
 
         Arguments:
         root: a start state with no parent
@@ -117,11 +122,6 @@ class Game(object):
         This simulates a complete turn for each eot provided, rather than
         just one branch at a time. The method will only stop generating
         when all possibilities have been simulated or filtered.
-
-        Warning on run time:
-        If random fill is used together with this method, it could easily
-        run virtually forever due to the huge number of possibilities it
-        introduces.
         """
         # simple confirmation that the root is actually a root.
         # otherwise it may seem to work but would be totally out of spec
@@ -129,9 +129,10 @@ class Game(object):
             raise ValueError('Unexpectedly received a node with a parent for'
                              ' root:\n{}'.format(root))
         # run a single turn for each eot from a stack
-        job_stack = [root]
-        while job_stack:
-            start_eot = job_stack.pop()
+        jobs = [root]
+        while jobs:
+            random_job_index = random.randint(0, len(jobs) - 1)
+            start_eot = jobs.pop(random_job_index)
             # special case: handle the root once
             if start_eot is root:
                 kw_root = {'root': start_eot}
@@ -140,7 +141,7 @@ class Game(object):
             for eot in self.ends_of_one_state(**kw_root):
                 # only continue simulating non-mana drains
                 if not eot.is_mana_drain:
-                    job_stack.append(eot)
+                    jobs.append(eot)
                 yield eot  # yield all eots including mana drains
 
     # Internal methods

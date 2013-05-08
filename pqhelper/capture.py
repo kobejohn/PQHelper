@@ -12,7 +12,7 @@ def capture(board_string):
     root = base.State(base.Board(board_string), stub_actor, stub_actor,
                       turn=1, actions_remaining=1)
     solution_node = None
-    for eot in game.ends_of_turn_by_depth(root):
+    for eot in game.all_ends_of_turn(root):
         # check for a solution
         if eot.is_mana_drain:  # quick check before checking whole board
             if eot.parent.board.is_empty():

@@ -312,15 +312,15 @@ class Test_Game(unittest.TestCase):
                                        final_board_string))
 
     # Depth-First continuous simulation
-    def test_ends_of_turn_by_depth_raises_ValueError_for_non_root(self):
+    def test_all_ends_of_turn_raises_ValueError_for_non_root(self):
         # confirm node with parent fails
         game = generic_game()
         root = generic_state()
         child = generic_state()
         root.graft_child(child)
-        self.assertRaises(ValueError, game.ends_of_turn_by_depth(child).next)
+        self.assertRaises(ValueError, game.all_ends_of_turn(child).next)
 
-    def test_ends_of_turn_by_depth_generates_all_possible_ends_of_turn(self):
+    def test_all_ends_of_turn_generates_all_possible_ends_of_turn(self):
         game = generic_game()
         root = generic_state(board=Board(self.board_string_two_paths))
         # generate all ends of turn and confirm the total number
@@ -332,7 +332,7 @@ class Test_Game(unittest.TestCase):
                                  4: 14,
                                  5: 20,
                                  6: 20}
-        eots = list(game.ends_of_turn_by_depth(root))
+        eots = list(game.all_ends_of_turn(root))
         eot_len = len(eots)
         eot_len_spec = sum(results_per_turn_spec.values())
         self.assertEqual(eot_len, eot_len_spec,
