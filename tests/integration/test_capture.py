@@ -44,7 +44,7 @@ class Test_Capture_Game(unittest.TestCase):
         game = generic_game()
         root = generic_state(board=Board(board_string_1))
         # simulate the game
-        list(game.ends_of_turn(root=root))
+        list(game.ends_of_one_state(root=root))
         # confirm that the game will now disallow a state with the same result
         non_duplicate_state = generic_state(board=Board(board_string_2))
         self.assertFalse(game._disallow_state(non_duplicate_state),
@@ -71,7 +71,7 @@ class Test_Capture_Game(unittest.TestCase):
         game = generic_game()
         root = generic_state(board=Board(board_string))
         # simulate the game
-        list(game.ends_of_turn(root=root))
+        list(game.ends_of_one_state(root=root))
         # confirm that the game will now disallow a state with the same result
         test_state = generic_state(board=Board(result_board_string))
         self.assertTrue(game._disallow_state(test_state),

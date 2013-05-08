@@ -11,28 +11,14 @@ def capture(board_string):
     stub_actor = base.Actor('capture', v, v, v, v, v, v, v, v, v)
     root = base.State(base.Board(board_string), stub_actor, stub_actor,
                       turn=1, actions_remaining=1)
-    # prime the job stack
-    eot_stack = [root]
     solution_node = None
-    while eot_stack:
-        start_eot = eot_stack.pop()
-        # special case: handle the root once
-        if start_eot is root:
-            kw_root = {'root': start_eot}
-        else:
-            kw_root = {'root_eot': start_eot}
-        for eot in game.ends_of_turn(**kw_root):
-            # check for a solution
-            if eot.is_mana_drain:  # this takes less computation than board
-                if eot.parent.board.is_empty():
-                    solution_node = eot
-                    break
-            # not a solution and not mana drain (ignore non-solution mana drain)
-            else:
-                # more work to do looking for a solution
-                eot_stack.append(eot)
-        if solution_node:
-            break
+    for eot in game.ends_of_turn_by_depth(root):
+        # check for a solution
+        if eot.is_mana_drain:  # quick check before checking whole board
+            if eot.parent.board.is_empty():
+                solution_node = eot
+                break
+    # if solution found, build the list of swaps
     solution_sequence = list()  # empty sequence (no solution) by default
     if solution_node:
         node = solution_node
