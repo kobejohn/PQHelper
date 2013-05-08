@@ -17,9 +17,9 @@ class Game(object):
         self.random_fill = use_random_fill
 
     # Run simulation
-    def ends_of_turn(self, root=None, root_eot=None):
-        """Simulate a complete turn and generate each end of turn reached in
-        the simulation.
+    def ends_of_one_state(self, root=None, root_eot=None):
+        """Simulate a complete turn from one state only and generate each
+        end of turn reached in the simulation.
 
         Arguments:
         Exactly one of:

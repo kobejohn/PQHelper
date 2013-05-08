@@ -59,37 +59,37 @@ class Test_Game(unittest.TestCase):
         game = generic_game()
         confirm_attribute(game, 'random_fill')
 
-    # Run simulation
-    def test_ends_of_turn_raises_TypeError_if_not_exactly_one_arg(self):
+    # Run simulation of one turn for one state
+    def test_ends_of_one_state_raises_TypeError_if_not_exactly_one_arg(self):
         game = generic_game()
         # fail for zero args
-        generator = game.ends_of_turn()
+        generator = game.ends_of_one_state()
         self.assertRaises(TypeError, generator.next)
         # fail for two args
         root_state = generic_state()
         eot = EOT(False)
-        generator = game.ends_of_turn(root=root_state, root_eot=eot)
+        generator = game.ends_of_one_state(root=root_state, root_eot=eot)
         self.assertRaises(TypeError, generator.next)
 
-    def test_ends_of_turn_raises_ValueError_for_non_root_state(self):
+    def test_ends_of_one_state_raises_ValueError_for_non_root_state(self):
         game = generic_game()
         root_state = generic_state()
         child_state = generic_state()
         root_state.graft_child(child_state)
-        generator = game.ends_of_turn(root=child_state)
+        generator = game.ends_of_one_state(root=child_state)
         self.assertRaises(ValueError, generator.next)
 
-    def test_ends_of_turn_raises_TypeError_for_non_eot_transition(self):
+    def test_ends_of_one_state_raises_TypeError_for_non_eot_transition(self):
         game = generic_game()
         non_eot_transition = ChainReaction()
-        generator = game.ends_of_turn(root_eot=non_eot_transition)
+        generator = game.ends_of_one_state(root_eot=non_eot_transition)
         self.assertRaises(TypeError, generator.next)
 
-    def test_ends_of_turn_generates_all_leaves_as_EOT(self):
+    def test_ends_of_one_state_generates_all_leaves_as_EOT(self):
         game = generic_game()
         root = generic_state(board=Board(self.board_string_two_paths))
         # try to complete generation by converting to list
-        ends_of_turn = list(game.ends_of_turn(root))
+        ends_of_turn = list(game.ends_of_one_state(root))
         leaves = list(root.leaves)
         # confirm leaves === generated ends of turn
         self.assertItemsEqual(ends_of_turn, leaves)
@@ -97,11 +97,11 @@ class Test_Game(unittest.TestCase):
         for result in ends_of_turn:
             self.assertIsInstance(result, EOT)
 
-    def test_ends_of_turn_from_root_generates_2_branches(self):
+    def test_ends_of_one_state_from_root_generates_2_branches(self):
         game = generic_game()
         root = generic_state(board=Board(self.board_string_two_paths))
         # try to complete generation by converting to list
-        eots = list(game.ends_of_turn(root=root))
+        eots = list(game.ends_of_one_state(root=root))
         # confirm eots have correct boards
         end_boards = [str(eot.parent.board) for eot in eots]
         self.assertItemsEqual(end_boards, self.turn_1_eot_board_strings,
@@ -111,7 +111,7 @@ class Test_Game(unittest.TestCase):
                                         self.turn_1_eot_board_strings[1],
                                         '\n'.join(end_boards)))
 
-    def test_ends_of_turn_from_left_eot_generates_2_branches(self):
+    def test_ends_of_one_state_from_left_eot_generates_2_branches(self):
         game = generic_game()
         # simulate an eot
         last = generic_state(board=Board(self.turn_1_eot_board_strings[0]),
@@ -119,7 +119,7 @@ class Test_Game(unittest.TestCase):
         eot = EOT(False)
         last.graft_child(eot)
         # provide the eot to the simulation and confirm the results are correct
-        eots = list(game.ends_of_turn(root_eot=eot))
+        eots = list(game.ends_of_one_state(root_eot=eot))
         end_boards = [str(eot.parent.board) for eot in eots]
         self.assertItemsEqual(end_boards,
                               self.turn_2_left_eot_board_strings,
@@ -129,7 +129,7 @@ class Test_Game(unittest.TestCase):
                                         self.turn_2_left_eot_board_strings[1],
                                         '\n'.join(end_boards)))
         
-    def test_ends_of_turn_generates_chain_reaction_result(self):
+    def test_ends_of_one_state_generates_chain_reaction_result(self):
         chain_board_string = '........\n'\
                              '........\n'\
                              '........\n'\
@@ -141,7 +141,7 @@ class Test_Game(unittest.TestCase):
         game = generic_game()
         root = generic_state(board=Board(chain_board_string))
         # run the simulation
-        eots = list(game.ends_of_turn(root=root))
+        eots = list(game.ends_of_one_state(root=root))
         # confirm the following sequence
         # root_state -> swap -> result_state -> chain -> result_state -> eot
         tree_strings_spec = ('State', 'Swap', 'State', 'Chain', 'State', 'EOT')
@@ -160,10 +160,10 @@ class Test_Game(unittest.TestCase):
         leaf = eots[0]
         self.assertEqual(leaf.parent.board, Board())
 
-    def test_end_of_turns_attaches_mana_drain_to_blank_root(self):
+    def test_ends_of_one_state_attaches_mana_drain_to_blank_root(self):
         game = generic_game(False)
         root = generic_state(board=Board())
-        list(game.ends_of_turn(root=root))
+        list(game.ends_of_one_state(root=root))
         eot = root.children[0]
         # confirm that there is only one new node
         self.assertEqual(len(root.children), 1)
@@ -171,7 +171,7 @@ class Test_Game(unittest.TestCase):
         # confirm that the node is mana_drain
         self.assertTrue(eot.is_mana_drain)
 
-    def test_end_of_turns_attaches_mana_drain_to_mana_drain_sim_result(self):
+    def test_ends_of_one_state_attaches_mana_drain_to_mana_drain_result(self):
         end_of_turn_is_mana_drain_board_string = '........\n'\
                                                  '........\n'\
                                                  '........\n'\
@@ -183,18 +183,18 @@ class Test_Game(unittest.TestCase):
         game = generic_game(False)
         board = Board(end_of_turn_is_mana_drain_board_string)
         root = generic_state(board=board)
-        eots = list(game.ends_of_turn(root=root))
+        eots = list(game.ends_of_one_state(root=root))
         eot = eots[0]
         # confirm that the node is mana_drain
         self.assertTrue(eot.is_mana_drain)
 
-    def test_ends_of_turn_resets_last_board_to_random_start_on_mana_drain(self):
+    def test_ends_of_one_state_sets_random_board_on_mana_drain_state(self):
         use_random_fill = True
         game = generic_game(use_random_fill)
         empty_board = Board()
         root = generic_state(board=empty_board)
         # run the simulation
-        ends_of_turn = list(game.ends_of_turn(root=root))
+        ends_of_turn = list(game.ends_of_one_state(root=root))
         last_state_board = ends_of_turn[0].parent.board
         # confirm that the end state is full
         for p, tile in last_state_board.positions_with_tile():
@@ -209,17 +209,17 @@ class Test_Game(unittest.TestCase):
                          ' should be stable')
 
     @patch('pqhelper.base.Game._disallow_state', lambda *args: True)
-    def test_end_of_turns_attaches_Filtered_when_a_state_fails_test(self):
+    def test_ends_of_one_state_attaches_Filtered_when_a_state_fails_test(self):
         game = generic_game(False)
         root = generic_state(board=Board(self.board_string_two_paths))
-        list(game.ends_of_turn(root=root))
+        list(game.ends_of_one_state(root=root))
         # confirm that the root was filtered and tagged
         leaf = list(root.leaves)[0]
         self.assertIsInstance(leaf, Filtered)
 
     @patch('pqhelper.base.Game._disallow_state',
            lambda self_, state: state.board.is_empty())
-    def test_end_of_turns_attaches_Filtered_when_a_chain_fails_test(self):
+    def test_ends_of_one_state_attaches_Filtered_when_a_chain_fails_test(self):
         # the patch causes a failure only during the chain reaction part of sim
         chain_board_string = '........\n'\
                              '........\n'\
@@ -232,12 +232,12 @@ class Test_Game(unittest.TestCase):
         game = generic_game()
         root = generic_state(board=Board(chain_board_string))
         # run the simulation
-        list(game.ends_of_turn(root=root))
+        list(game.ends_of_one_state(root=root))
         # confirm that the leaf is filtered, not EOT
         leaf = list(root.leaves)[0]
         self.assertIsInstance(leaf, Filtered)
 
-    def test_end_of_turns_simulates_bonus_action_for_match_of_4(self):
+    def test_ends_of_one_state_simulates_bonus_action_for_match_of_4(self):
         bonus_action_board_string = '........\n'\
                                     '........\n'\
                                     '........\n'\
@@ -256,7 +256,7 @@ class Test_Game(unittest.TestCase):
                                    '.mm.s...'
         game = generic_game(False)
         root = generic_state(board=Board(bonus_action_board_string))
-        eots = list(game.ends_of_turn(root=root))
+        eots = list(game.ends_of_one_state(root=root))
         last_state = eots[0].parent
         # confirm still on turn 1
         self.assertEqual(last_state.turn, 1)
