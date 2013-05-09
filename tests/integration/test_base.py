@@ -263,6 +263,82 @@ class Test_Game(unittest.TestCase):
         # confirm board that is possible only after an extra action
         self.assertEqual(str(last_state.board), after_bonus_board_string)
 
+    def test_ends_of_one_state_simulates_tile_effects_on_actors(self):
+        # this board has the same move available in the first and second turns
+        # the move gives x to the active actor and damages the passive actor
+        # the "m" tiles just allow the result not to be identified as mana drain
+        board_string = '........\n'\
+                       '........\n'\
+                       '........\n'\
+                       '..m.....\n'\
+                       '..s.s...\n'\
+                       '..s.s...\n'\
+                       '..x.xm..\n'\
+                       'xxsmsxx.'
+        game = generic_game(False)
+        # setup the root
+        v = (base, maximum) = (50, 100)
+        player = generic_actor('player', v, v, v, v, v, v, v, v, v)
+        opponent = generic_actor('opponent', v, v, v, v, v, v, v, v, v)
+        root = generic_state(board=Board(board_string),
+                             player=player, opponent=opponent)
+        # turn 1 values
+        turn_1_player_high = ('x',)
+        turn_1_player_same = ('health', 'r', 'g', 'b', 'y', 'm', 'h', 'c')
+        turn_1_player_low = ()
+        turn_1_opponent_high = ()
+        turn_1_opponent_same = ('r', 'g', 'b', 'y', 'x', 'm', 'h', 'c')
+        turn_1_opponent_low = ('health',)
+        # turn 2 values
+        turn_2_both_high = ('x',)
+        turn_2_both_same = ('r', 'g', 'b', 'y', 'm', 'h', 'c')
+        turn_2_both_low = ('health',)
+
+        def confirm_values(turn, actor, highs, sames, lows):
+            for high in highs:
+                new_value = getattr(actor, high)
+                self.assertGreater(new_value, base,
+                                   'Expected {} to be greater than {} for {}'
+                                   ' on turn {} but got {}.'
+                                   ''.format(high, base, actor.name,
+                                             turn, new_value))
+            for same in sames:
+                new_value = getattr(actor, same)
+                self.assertEqual(new_value, base,
+                                 'Expected {} to be equal to {} for {}'
+                                 ' on turn {} but got {}.'
+                                 ''.format(same, base, actor.name,
+                                           turn, new_value))
+            for low in lows:
+                new_value = getattr(actor, low)
+                self.assertLess(new_value, base,
+                                'Expected {} to be less than {} for {}'
+                                ' on turn {} but got {}.'
+                                ''.format(low, base, actor.name,
+                                          turn, new_value))
+        # turn 1: confirm player gains exp and opponent loses health
+        eots = list(game.ends_of_one_state(root=root))
+        one_eot = eots[0]  # either eot is fine since the results are the same
+        confirm_values(1, one_eot.parent.player,
+                       turn_1_player_high,
+                       turn_1_player_same,
+                       turn_1_player_low)
+        confirm_values(1, one_eot.parent.opponent,
+                       turn_1_opponent_high,
+                       turn_1_opponent_same,
+                       turn_1_opponent_low)
+        # turn 2: confirm opposite happens
+        eots = list(game.ends_of_one_state(root_eot=one_eot))
+        one_eot = eots[0]  # either eot is fine since the results are the same
+        confirm_values(2, one_eot.parent.player,
+                       turn_2_both_high,
+                       turn_2_both_same,
+                       turn_2_both_low)
+        confirm_values(2, one_eot.parent.opponent,
+                       turn_2_both_high,
+                       turn_2_both_same,
+                       turn_2_both_low)
+
     # Breadth-First whole turn simulation
     def test_ends_of_whole_next_turn_raises_ValueError_for_non_root(self):
         # confirm node with parent fails
