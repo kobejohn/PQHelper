@@ -498,25 +498,11 @@ class Board(object):
         for position, new_tile in changes:
             self._array[position] = new_tile
 
-    def _match(self, non_equivalent_positions=None):
-        """Find all matches and generate a position group for each match.
-
-        non_equivalent_positions should be None (no optimization) or a sequence
-        of positions in which the matching behavior has changed. Then matching
-        can be limited to those rows / columns
-
-        """
-        #optional optimization based on matching changes from the previous board
-        #get all rows and columns that have a non equivalent mark
-        if non_equivalent_positions:
-            rows = [row for row, column in non_equivalent_positions]
-            columns = [column for row, column in non_equivalent_positions]
-            optimized_rows = set(rows)
-            optimized_columns = set(columns)
-        else:
-            #disable optimized matching
-            optimized_rows = None
-            optimized_columns = None
+    def _match(self):
+        """Find all matches and generate a position group for each match."""
+        #disable optimized matching
+        optimized_rows = None
+        optimized_columns = None
         for match in self.__match_rows(optimized_rows):
             #match in rows
             yield match
