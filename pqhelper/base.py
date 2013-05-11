@@ -8,13 +8,13 @@ from treenode import TreeNode
 class Game(object):
     """Simulates the possibilities of a PQ game."""
     # Initialization and core attributes
-    def __init__(self, use_random_fill):
+    def __init__(self, random_fill):
         """Initialize a new game simulation container.
 
         Arguments:
         use_random_fill: True/False indicating to randomly fill boards or not.
         """
-        self.random_fill = use_random_fill
+        self.random_fill = random_fill
 
     # Run simulation
     def ends_of_one_state(self, root=None, root_eot=None):
