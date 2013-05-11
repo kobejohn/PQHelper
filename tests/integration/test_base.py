@@ -1395,13 +1395,17 @@ class Test_Actor(unittest.TestCase):
                              ' after applying mana drain.'
                              ''.format(mana_value, mana_type))
 
-    def test_apply_tile_groups_raises_TypeError_if_cant_find_group_type(self):
+    def test_apply_tile_groups_ignores_wildcard_group_type(self):
         actor = generic_actor()
         # build a wildcard only group that has no group type
         wildcard = Tile('2')
         tile_groups = [(wildcard, wildcard, wildcard)]
         # apply the groups and confirm increase
-        self.assertRaises(TypeError, actor.apply_tile_groups, tile_groups)
+        try:
+            actor.apply_tile_groups(tile_groups)
+        except Exception as e:
+            self.fail('Unexpectedly got an error applying an all-wildcard'
+                      ' group instead of ignoring it.')
 
     def test_apply_tile_groups_increases_color_and_unique_current_values(self):
         base_value = 0

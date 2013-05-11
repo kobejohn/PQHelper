@@ -822,10 +822,8 @@ class Actor(object):
                 # handle standard case of normal tiles
                 else:
                     type_count += 1
-            # TypeError if no group type
             if group_type is None:
-                raise TypeError('Could not determine the main type for this'
-                                'group of tiles: {}'.format(tile_group))
+                continue  # ignore this group. could be all wildcards or empty
             # adjust self value
             if type_count:
                 new_value = type_count * type_multiplier
