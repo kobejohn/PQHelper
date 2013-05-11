@@ -4,7 +4,7 @@ from pqhelper import capture
 
 
 def main():
-    cProfile.run('test_solution(giant_rat)')
+    cProfile.run('test_solution(catapult)')
 
 
 def test_solution(board_string):
