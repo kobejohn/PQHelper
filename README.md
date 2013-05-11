@@ -22,9 +22,9 @@ Command Line Usage per Game Type
 
 **Capture:**
 
-from pqhelper import capture
+    from pqhelper import capture
 
-# Capture is very easy to use and relatively quick to find a solution.
+    # Capture is very easy to use and relatively quick to find a solution.
     catapult = '''
                ........
                ........
