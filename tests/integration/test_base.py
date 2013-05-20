@@ -1405,7 +1405,7 @@ class Test_Actor(unittest.TestCase):
             actor.apply_tile_groups(tile_groups)
         except Exception as e:
             self.fail('Unexpectedly got an error applying an all-wildcard'
-                      ' group instead of ignoring it.')
+                      ' group instead of ignoring it:\n{}'.format(e))
 
     def test_apply_tile_groups_increases_color_and_unique_current_values(self):
         base_value = 0
