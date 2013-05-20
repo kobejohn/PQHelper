@@ -8,7 +8,7 @@ except ImportError:
 
 setup(
     name='PQHelper',
-    version='0.1.0',
+    version='0.1.1',
     py_modules=['distribute_setup'],
     packages=['pqhelper'],
     requires=['numpy', 'treenode', 'investigators'],
