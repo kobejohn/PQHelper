@@ -91,3 +91,9 @@ Command Line Usage per Game Type
 **Forge: Planned**
 
 **Research: Planned**
+
+
+License:
+========
+
+MIT. See LICENSE.
