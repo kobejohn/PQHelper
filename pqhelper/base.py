@@ -2,7 +2,77 @@ import random
 
 import numpy
 
+import pqhelper.StateInvestigator_data as _data
+from investigators import visuals as v
 from treenode import TreeNode
+
+
+class StateInvestigator(object):
+    """Provide data required for each type of game.
+
+    Note: This could be module functions, but this requires quite a bit of
+    stored data that would clutter up the module namespace.
+    """
+    _GAME_SIZES = (v.Dimensions(480, 640),
+                   v.Dimensions(600, 800),
+                   v.Dimensions(768, 1024),
+                   v.Dimensions(800, 1066),
+                   v.Dimensions(960, 1280),
+                   v.Dimensions(1024, 1280),
+                   v.Dimensions(1050, 1400),
+                   v.Dimensions(1200, 1600))
+
+    # these values are simply from inspection
+    _BOARD_PROPORTIONS = (float(162) / 960,
+                          float(270) / 1280,
+                          float(900) / 960,
+                          float(1010) / 1280)
+
+    # templates
+    _GAME_TEMPLATE_PATHS = {'capture': 'capture template 1280x960.png'}
+    #todo: add other wildcard templates
+
+    def __init__(self):
+        # setup screenshot: just pull it from visuals
+        self._screen_shot = v.screen_shot
+        # setup capture template finder
+        self._capture_finder = v.TemplateFinder(_data.capture,
+                                                sizes=self._GAME_SIZES)
+        # setup proportional board finder
+        self._board_finder = v.ProportionalRegion(self._BOARD_PROPORTIONS)
+        # setup board grid
+        board_dimensions = (8, 8)
+        tile_padding = (0, 0, 0, 0)
+        self._board_grid = v.Grid(board_dimensions, tile_padding)
+        # setup tile identifier
+        self._tile_identifier = v.ImageIdentifier(_data.tile_templates,
+                                                  acceptable_threshold=0.4)
+
+    def get_capture(self):
+        """Return the capture board."""
+        screen = self._screen_shot()
+        # Use TemplateFinder to locate and extract the game from the screen
+        game_borders = self._capture_finder.locate_in(screen)
+        if game_borders is None:
+            return None  # soft failure
+        top, left, bottom, right = game_borders
+        game = screen[top:bottom, left:right]
+        # Use ProportionalRegion to isolate the board within the game
+        board_borders = self._board_finder.region_in(game)
+        top, left, bottom, right = board_borders
+        board = game[top:bottom, left:right]
+        # Use Grid to split the grid into tile cells and set each real tile
+        b = Board()
+        for p, cell_borders in self._board_grid.borders_by_grid_position(board):
+            top, left, bottom, right = cell_borders
+            tile = board[top:bottom, left:right]
+            tile_character = self._tile_identifier.identify(tile)
+            if tile_character is None:
+                return None  # soft failure
+            b[p] = Tile(tile_character)
+        # return the completed board
+        #todo: error cases
+        return b
 
 
 class Game(object):

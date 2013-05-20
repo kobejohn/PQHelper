@@ -1,12 +1,54 @@
 import unittest
+from os import path
 
 from mock import patch
+from investigators.visuals import cv2
 
 from pqhelper.base import Actor, Board, Tile
 from pqhelper.base import BaseTransition, Swap, ChainReaction, EOT, Filtered
-from pqhelper.base import Game, State
+from pqhelper.base import Game, State, StateInvestigator
 
 from pqhelper.base import TreeNode
+
+# silly workaround to avoid false warnings in PyCharm
+patch.object = patch.object
+
+class Test_StateInvestigator(unittest.TestCase):
+    def test_get_capture_returns_None_if_game_can_not_be_found_on_screen(self):
+        si = StateInvestigator()
+        with patch.object(si._capture_finder, 'locate_in') as m_locate_in:
+            m_locate_in.return_value = None
+            board = si.get_capture()
+        self.assertIsNone(board)
+
+    def test_get_capture_returns_None_if_tile_can_not_be_identified(self):
+        si = StateInvestigator()
+        with patch.object(si._tile_identifier, 'identify') as m_identify:
+            m_identify.return_value = None
+            board = si.get_capture()
+        self.assertIsNone(board)
+
+    def test_get_capture_returns_correct_capture_board(self):
+        board_string_spec = '........\n'\
+                            '........\n'\
+                            '..mbgm..\n'\
+                            '.mxgbrm.\n'\
+                            'my*gb*gm\n'\
+                            'yrrxrxxg\n'\
+                            'ymxyyrmg\n'\
+                            'ssxssrss'
+        si = StateInvestigator()
+        here = path.abspath(path.split(__file__)[0])
+        screen_path = path.join(here, 'capture.png')
+        screen = cv2.imread(screen_path)
+        self.assertIsNotNone(screen)  # just to avoid confusing errors later
+        with patch.object(si, '_screen_shot') as m_screen_shot:
+            m_screen_shot.return_value = screen
+            board = si.get_capture()
+        self.assertEqual(str(board), board_string_spec)
+
+    def test_get_versus_returns_correct_board_player_and_opponent(self):
+        raise NotImplementedError
 
 
 class Test_Game(unittest.TestCase):
