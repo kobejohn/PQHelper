@@ -1,7 +1,10 @@
 from pqhelper import base
 
 
-def capture(board_string):
+Board = base.Board
+
+
+def capture(board):
     """Try to solve the board described by board_string.
 
     Return tuple of swaps in the order required to solve the board.
@@ -9,7 +12,7 @@ def capture(board_string):
     game = Game()
     v = (0, 0)
     stub_actor = base.Actor('capture', v, v, v, v, v, v, v, v, v)
-    root = base.State(base.Board(board_string), stub_actor, stub_actor,
+    root = base.State(board, stub_actor, stub_actor,
                       turn=1, actions_remaining=1)
     solution_node = None
     for eot in game.all_ends_of_turn(root):

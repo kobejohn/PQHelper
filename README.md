@@ -35,9 +35,11 @@ Command Line Usage per Game Type
                ymxyyrmg
                ssxssrss
                '''
-    solution = capture.capture(catapult)
+    print 'Trying to capture the catapult:\n{}'.format(catapult)
+    solution = capture.capture(capture.Board(catapult))
     for solution_step in solution:
         print solution_step
+
 
 **Versus:**
 

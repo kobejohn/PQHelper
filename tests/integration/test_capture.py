@@ -14,7 +14,8 @@ class Test_capture(unittest.TestCase):
                        '....xx.r\n' \
                        '....rr.r\n' \
                        '..rryyry'
-        solution = capture(board_string)
+        board = Board(board_string)
+        solution = capture(board)
         # confirm that the solution matches the specification
         solution_spec = (((7, 6), (7, 7)), ((7, 6), (7, 7)))
         self.assertSequenceEqual(solution, solution_spec,
