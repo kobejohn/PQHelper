@@ -78,7 +78,7 @@ class Test_StateInvestigator(unittest.TestCase):
         with patch.object(si, '_screen_shot') as m_screen_shot:
             m_screen_shot.return_value = screen
             board, player, opponent = si.get_versus()
-        # confirm that they are all correct
+        # confirm that the board is correct
         board_string_spec = 'smrbmsgs\n'\
                             'bbyxxysm\n'\
                             'ysmggssm\n'\
@@ -88,10 +88,42 @@ class Test_StateInvestigator(unittest.TestCase):
                             'xsgmmsgs\n'\
                             'ggsxggxm'
         self.assertEqual(str(board), board_string_spec)
-        player_string_spec = '...'
-        opponent_string_spec = '...'
-        self.assertEqual(str(player), player_string_spec)
-        self.assertEqual(str(opponent), opponent_string_spec)
+        # confirm that the player is correct
+        if player is None:
+            self.fail('Looks like player investigation not yet implemented')
+        p_health_spec, p_health_max_spec = (95, 120)  # max is approximate
+        p_g_spec, p_g_max_spec = 14, 30  # max is approximate
+        p_r_spec, p_r_max_spec = 29, 40  # max is approximate
+        p_y_spec, p_y_max_spec = 4, 40  # max is approximate
+        p_b_spec, p_b_max_spec = 7, 30  # max is approximate
+        self.assertAlmostEqual(player.health, p_health_spec, delta=5)
+        self.assertAlmostEqual(player.g, p_g_spec, delta=5)
+        self.assertAlmostEqual(player.r, p_r_spec, delta=5)
+        self.assertAlmostEqual(player.y, p_y_spec, delta=5)
+        self.assertAlmostEqual(player.b, p_b_spec, delta=5)
+        self.assertAlmostEqual(player.health_max, p_health_spec, delta=5)
+        self.assertAlmostEqual(player.g_max, p_g_max_spec, delta=5)
+        self.assertAlmostEqual(player.r_max, p_r_max_spec, delta=5)
+        self.assertAlmostEqual(player.y_max, p_y_max_spec, delta=5)
+        self.assertAlmostEqual(player.b_max, p_b_max_spec, delta=5)
+        # confirm that the opponent is correct
+        if opponent is None:
+            self.fail('Looks like opponent investigation not yet implemented')
+        o_health_spec, o_health_max_spec = (51, 114)  # max is approximate
+        o_g_spec, o_g_max_spec = 8, 30  # max is approximate
+        o_r_spec, o_r_max_spec = 32, 32  # max is approximate
+        o_y_spec, o_y_max_spec = 15, 28  # max is approximate
+        o_b_spec, o_b_max_spec = 23, 28  # max is approximate
+        self.assertAlmostEqual(opponent.health, o_health_spec, delta=5)
+        self.assertAlmostEqual(opponent.g, o_g_spec, delta=5)
+        self.assertAlmostEqual(opponent.r, o_r_spec, delta=5)
+        self.assertAlmostEqual(opponent.y, o_y_spec, delta=5)
+        self.assertAlmostEqual(opponent.b, o_b_spec, delta=5)
+        self.assertAlmostEqual(opponent.health_max, o_health_spec, delta=5)
+        self.assertAlmostEqual(opponent.g_max, o_g_max_spec, delta=5)
+        self.assertAlmostEqual(opponent.r_max, o_r_max_spec, delta=5)
+        self.assertAlmostEqual(opponent.y_max, o_y_max_spec, delta=5)
+        self.assertAlmostEqual(opponent.b_max, o_b_max_spec, delta=5)
 
 
 class Test_Game(unittest.TestCase):
