@@ -13,6 +13,7 @@ class StateInvestigator(object):
     Note: This could be module functions, but this requires quite a bit of
     stored data that would clutter up the module namespace.
     """
+    # these are the possible shapes of the main game screen in PQ
     _GAME_SIZES = (v.Dimensions(480, 640),
                    v.Dimensions(600, 800),
                    v.Dimensions(768, 1024),
@@ -32,21 +33,14 @@ class StateInvestigator(object):
     _GAME_TEMPLATE_PATHS = {'capture': 'capture template 1280x960.png'}
     #todo: add other wildcard templates
 
-    def __init__(self):
-        # setup game image finders
-        self._game_finders = gf = dict()
-        gf['capture'] = v.TemplateFinder(_data.capture_template,
-                                         sizes=self._GAME_SIZES)
-        gf['versus'] = v.TemplateFinder(_data.versus_template,
-                                        sizes=self._GAME_SIZES)
-        # setup proportional board finder
-        self._board_finder = v.ProportionalRegion(self._BOARD_PROPORTIONS)
-        # setup board grid
-        board_dimensions = (8, 8)
-        tile_padding = (0, 0, 0, 0)
-        self._board_grid = v.Grid(board_dimensions, tile_padding)
-        # setup tile identifier
-        self._tile_identifier = v.ImageIdentifier(_data.tile_templates)
+    # various investigators used to extract data
+    _game_finders = {'capture': v.TemplateFinder(_data.capture_template,
+                                                 sizes=_GAME_SIZES),
+                     'versus': v.TemplateFinder(_data.versus_template,
+                                                sizes=_GAME_SIZES)}
+    _board_finder = v.ProportionalRegion(_BOARD_PROPORTIONS)
+    _board_grid = v.Grid((8, 8), (0, 0, 0, 0))
+    _tile_identifier = v.ImageIdentifier(_data.tile_templates)
 
     def get_capture(self):
         """Return the capture board or None if can't find it."""
