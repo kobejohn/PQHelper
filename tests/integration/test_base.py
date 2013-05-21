@@ -15,6 +15,7 @@ patch.object = patch.object
 
 
 class Test_StateInvestigator(unittest.TestCase):
+    # Capture
     def test_get_capture_returns_None_if_game_can_not_be_found_on_screen(self):
         si = StateInvestigator()
         capture_finder = si._game_finders['capture']

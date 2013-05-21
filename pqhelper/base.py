@@ -46,9 +46,7 @@ class StateInvestigator(object):
         tile_padding = (0, 0, 0, 0)
         self._board_grid = v.Grid(board_dimensions, tile_padding)
         # setup tile identifier
-        self._tile_identifier = v.ImageIdentifier(_data.tile_templates,
-                                                  acceptable_threshold=0.4,
-                                                  immediate_threshold=0.1)
+        self._tile_identifier = v.ImageIdentifier(_data.tile_templates)
 
     def get_capture(self):
         """Return the capture board or None if can't find it."""
@@ -56,11 +54,8 @@ class StateInvestigator(object):
         game_img = self._game_image_from_screen('capture')
         if game_img is None:
             return None
-        # board object
+        # board object (may be None if not found)
         board = self.board_from_game_image(game_img)
-        if board is None:
-            return None
-        # done
         return board
 
     def _screen_shot(self):
