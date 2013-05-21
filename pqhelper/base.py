@@ -33,8 +33,6 @@ class StateInvestigator(object):
     #todo: add other wildcard templates
 
     def __init__(self):
-        # setup screenshot: just pull it from visuals
-        self._screen_shot = v.screen_shot
         # setup game image finders
         self._game_finders = gf = dict()
         gf['capture'] = v.TemplateFinder(_data.capture,
@@ -64,6 +62,9 @@ class StateInvestigator(object):
             return None
         # done
         return board
+
+    def _screen_shot(self):
+        return v.screen_shot()
 
     def _game_image_from_screen(self, game_type):
         """Return the game image on the screen or None if can't find it."""
