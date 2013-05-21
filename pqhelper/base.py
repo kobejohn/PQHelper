@@ -102,6 +102,16 @@ class StateInvestigator(object):
     def _versus_actors_from_game_image(self, game_img):
         return None, None
 
+    def generic_versus_actors(self):
+        health = 50, 100
+        v = 20, 40
+        unused = 0, 0
+        player = Actor('player', health, v, v, v, v,
+                       unused, unused, unused, unused)
+        opponent = Actor('opponent', health, v, v, v, v,
+                         unused, unused, unused, unused)
+        return player, opponent
+
 
 class Game(object):
     """Simulates the possibilities of a PQ game."""

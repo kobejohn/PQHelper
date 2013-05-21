@@ -125,6 +125,33 @@ class Test_StateInvestigator(unittest.TestCase):
         self.assertAlmostEqual(opponent.y_max, o_y_max_spec, delta=5)
         self.assertAlmostEqual(opponent.b_max, o_b_max_spec, delta=5)
 
+    def test_generic_versus_actors_produces_average_player_and_opponent(self):
+        # this is a stopgap until actor investigation is implemented
+        si = StateInvestigator()
+        player, opponent = si.generic_versus_actors()
+        health_spec, health_max_spec = 50, 100
+        mana_spec, mana_max_spec = 20, 40
+        unused_spec, unused_max_spec = 0, 0
+        for actor in (player, opponent):
+            self.assertEqual(actor.health, health_spec)
+            self.assertEqual(actor.g, mana_spec)
+            self.assertEqual(actor.r, mana_spec)
+            self.assertEqual(actor.y, mana_spec)
+            self.assertEqual(actor.b, mana_spec)
+            self.assertEqual(actor.x, unused_spec)
+            self.assertEqual(actor.m, unused_spec)
+            self.assertEqual(actor.h, unused_spec)
+            self.assertEqual(actor.c, unused_spec)
+            self.assertEqual(actor.health_max, health_max_spec)
+            self.assertEqual(actor.g_max, mana_max_spec)
+            self.assertEqual(actor.r_max, mana_max_spec)
+            self.assertEqual(actor.y_max, mana_max_spec)
+            self.assertEqual(actor.b_max, mana_max_spec)
+            self.assertEqual(actor.x_max, unused_max_spec)
+            self.assertEqual(actor.m_max, unused_max_spec)
+            self.assertEqual(actor.h_max, unused_max_spec)
+            self.assertEqual(actor.c_max, unused_max_spec)
+        # todo: for filler value, take the average color, b/w based on the average split, then count pixels
 
 class Test_Game(unittest.TestCase):
     """Confirm that Game simulates a game of PQ."""
