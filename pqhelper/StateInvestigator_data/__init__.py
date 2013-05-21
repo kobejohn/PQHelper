@@ -4,7 +4,10 @@ from investigators.visuals import cv2
 
 _base = os.path.abspath(os.path.split(__file__)[0])
 
-capture = cv2.imread(os.path.join(_base, 'capture template 1280x960.png'))
+capture_template = cv2.imread(os.path.join(_base,
+                                           'capture template 1280x960.png'))
+versus_template = cv2.imread(os.path.join(_base,
+                                          'versus template 1280x960.png'))
 
 tile_templates = {'.': cv2.imread(os.path.join(_base, '..png')),
                   'r': cv2.imread(os.path.join(_base, 'r.png')),

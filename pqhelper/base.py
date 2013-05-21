@@ -35,10 +35,10 @@ class StateInvestigator(object):
     def __init__(self):
         # setup game image finders
         self._game_finders = gf = dict()
-        gf['capture'] = v.TemplateFinder(_data.capture,
-                                         sizes=self._GAME_SIZES,
-                                         immediate_threshold=0.3,
-                                         acceptable_threshold=0.6)
+        gf['capture'] = v.TemplateFinder(_data.capture_template,
+                                         sizes=self._GAME_SIZES)
+        gf['versus'] = v.TemplateFinder(_data.versus_template,
+                                        sizes=self._GAME_SIZES)
         # setup proportional board finder
         self._board_finder = v.ProportionalRegion(self._BOARD_PROPORTIONS)
         # setup board grid
@@ -57,6 +57,19 @@ class StateInvestigator(object):
         # board object (may be None if not found)
         board = self.board_from_game_image(game_img)
         return board
+
+    def get_versus(self):
+        """Return the versus board, player, and opponent or None for any
+        that can't be found."""
+        # game image
+        game_img = self._game_image_from_screen('versus')
+        if game_img is None:
+            return None, None, None
+        # board object
+        board = self.board_from_game_image(game_img)
+        # player object
+        player, opponent = self._versus_actors_from_game_image(game_img)
+        return board, player, opponent
 
     def _screen_shot(self):
         return v.screen_shot()
@@ -91,6 +104,9 @@ class StateInvestigator(object):
             board[p] = Tile.singleton(tile_character)
         # return the completed board
         return board
+
+    def _versus_actors_from_game_image(self, game_img):
+        return None, None
 
 
 class Game(object):

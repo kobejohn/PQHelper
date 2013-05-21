@@ -18,8 +18,8 @@ class Test_StateInvestigator(unittest.TestCase):
     # Capture
     def test_get_capture_returns_None_if_game_can_not_be_found_on_screen(self):
         si = StateInvestigator()
-        capture_finder = si._game_finders['capture']
-        with patch.object(capture_finder, 'locate_in') as m_locate_in:
+        finder = si._game_finders['capture']
+        with patch.object(finder, 'locate_in') as m_locate_in:
             m_locate_in.return_value = None
             board = si.get_capture()
         self.assertIsNone(board)
@@ -50,8 +50,48 @@ class Test_StateInvestigator(unittest.TestCase):
             board = si.get_capture()
         self.assertEqual(str(board), board_string_spec)
 
+    # Versus
+    def test_get_versus_returns_None_if_game_can_not_be_found_on_screen(self):
+        si = StateInvestigator()
+        finder = si._game_finders['versus']
+        with patch.object(finder, 'locate_in') as m_locate_in:
+            m_locate_in.return_value = None
+            board, player, opponent = si.get_versus()
+        self.assertIsNone(board)
+        self.assertIsNone(player)
+        self.assertIsNone(opponent)
+
+    def test_get_versus_returns_None_board_if_tile_can_not_be_identified(self):
+        si = StateInvestigator()
+        with patch.object(si._tile_identifier, 'identify') as m_identify:
+            m_identify.return_value = None
+            board, player, opponent = si.get_versus()
+        self.assertIsNone(board)
+
     def test_get_versus_returns_correct_board_player_and_opponent(self):
-        raise NotImplementedError
+        si = StateInvestigator()
+        here = path.abspath(path.split(__file__)[0])
+        screen_path = path.join(here, 'versus.png')
+        screen = cv2.imread(screen_path)
+        self.assertIsNotNone(screen)  # just to avoid confusing errors later
+        # get the versus parts
+        with patch.object(si, '_screen_shot') as m_screen_shot:
+            m_screen_shot.return_value = screen
+            board, player, opponent = si.get_versus()
+        # confirm that they are all correct
+        board_string_spec = 'smrbmsgs\n'\
+                            'bbyxxysm\n'\
+                            'ysmggssm\n'\
+                            's4*xssmg\n'\
+                            'sbmsxgxx\n'\
+                            'xmgssgms\n'\
+                            'xsgmmsgs\n'\
+                            'ggsxggxm'
+        self.assertEqual(str(board), board_string_spec)
+        player_string_spec = '...'
+        opponent_string_spec = '...'
+        self.assertEqual(str(player), player_string_spec)
+        self.assertEqual(str(opponent), opponent_string_spec)
 
 
 class Test_Game(unittest.TestCase):
