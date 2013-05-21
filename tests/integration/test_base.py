@@ -151,7 +151,7 @@ class Test_StateInvestigator(unittest.TestCase):
             self.assertEqual(actor.m_max, unused_max_spec)
             self.assertEqual(actor.h_max, unused_max_spec)
             self.assertEqual(actor.c_max, unused_max_spec)
-        # todo: for filler value, take the average color, b/w based on the average split, then count pixels
+
 
 class Test_Game(unittest.TestCase):
     """Confirm that Game simulates a game of PQ."""
