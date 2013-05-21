@@ -13,10 +13,12 @@ from pqhelper.base import TreeNode
 # silly workaround to avoid false warnings in PyCharm
 patch.object = patch.object
 
+
 class Test_StateInvestigator(unittest.TestCase):
     def test_get_capture_returns_None_if_game_can_not_be_found_on_screen(self):
         si = StateInvestigator()
-        with patch.object(si._capture_finder, 'locate_in') as m_locate_in:
+        capture_finder = si._game_finders['capture']
+        with patch.object(capture_finder, 'locate_in') as m_locate_in:
             m_locate_in.return_value = None
             board = si.get_capture()
         self.assertIsNone(board)

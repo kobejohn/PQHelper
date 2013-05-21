@@ -35,9 +35,12 @@ class StateInvestigator(object):
     def __init__(self):
         # setup screenshot: just pull it from visuals
         self._screen_shot = v.screen_shot
-        # setup capture template finder
-        self._capture_finder = v.TemplateFinder(_data.capture,
-                                                sizes=self._GAME_SIZES)
+        # setup game image finders
+        self._game_finders = gf = dict()
+        gf['capture'] = v.TemplateFinder(_data.capture,
+                                         sizes=self._GAME_SIZES,
+                                         immediate_threshold=0.3,
+                                         acceptable_threshold=0.6)
         # setup proportional board finder
         self._board_finder = v.ProportionalRegion(self._BOARD_PROPORTIONS)
         # setup board grid
@@ -46,33 +49,52 @@ class StateInvestigator(object):
         self._board_grid = v.Grid(board_dimensions, tile_padding)
         # setup tile identifier
         self._tile_identifier = v.ImageIdentifier(_data.tile_templates,
-                                                  acceptable_threshold=0.4)
+                                                  acceptable_threshold=0.4,
+                                                  immediate_threshold=0.1)
 
     def get_capture(self):
-        """Return the capture board."""
-        screen = self._screen_shot()
-        # Use TemplateFinder to locate and extract the game from the screen
-        game_borders = self._capture_finder.locate_in(screen)
+        """Return the capture board or None if can't find it."""
+        # game image
+        game_img = self._game_image_from_screen('capture')
+        if game_img is None:
+            return None
+        # board object
+        board = self.board_from_game_image(game_img)
+        if board is None:
+            return None
+        # done
+        return board
+
+    def _game_image_from_screen(self, game_type):
+        """Return the game image on the screen or None if can't find it."""
+        screen_img = self._screen_shot()
+        # Use appropriate finder to locate and extract the game from the screen
+        finder = self._game_finders[game_type]
+        game_borders = finder.locate_in(screen_img)
         if game_borders is None:
             return None  # soft failure
         top, left, bottom, right = game_borders
-        game = screen[top:bottom, left:right]
+        game_img = screen_img[top:bottom, left:right]
+        return game_img
+
+    def board_from_game_image(self, game_img):
+        """Return a board object based on the image or
+        None if can't identify tiles."""
         # Use ProportionalRegion to isolate the board within the game
-        board_borders = self._board_finder.region_in(game)
+        board_borders = self._board_finder.region_in(game_img)
         top, left, bottom, right = board_borders
-        board = game[top:bottom, left:right]
+        board_img = game_img[top:bottom, left:right]
         # Use Grid to split the grid into tile cells and set each real tile
-        b = Board()
-        for p, cell_borders in self._board_grid.borders_by_grid_position(board):
-            top, left, bottom, right = cell_borders
-            tile = board[top:bottom, left:right]
+        board = Board()
+        for p, borders in self._board_grid.borders_by_grid_position(board_img):
+            top, left, bottom, right = borders
+            tile = board_img[top:bottom, left:right]
             tile_character = self._tile_identifier.identify(tile)
             if tile_character is None:
                 return None  # soft failure
-            b[p] = Tile(tile_character)
+            board[p] = Tile.singleton(tile_character)
         # return the completed board
-        #todo: error cases
-        return b
+        return board
 
 
 class Game(object):
