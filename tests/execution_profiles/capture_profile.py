@@ -8,7 +8,8 @@ def main():
 
 
 def test_solution(board_string):
-    print capture.capture(board_string)
+    board = capture.Board(board_string)
+    print capture.capture(board)
 
 skeleton = '''
 ..*..*..
