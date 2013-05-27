@@ -23,84 +23,180 @@ class StateInvestigator(object):
                    v.Dimensions(1050, 1400),
                    v.Dimensions(1200, 1600))
 
-    # these values are simply from inspection
-    _BOARD_PROPORTIONS = (float(162) / 960,
-                          float(270) / 1280,
-                          float(900) / 960,
-                          float(1010) / 1280)
+    # proportions of various parts determined by mesauring pixels on images
+    # all proportions are in top, left, bottom, right order
+    _BOUNDS = {'board': (float(162) / 960, float(270) / 1280,
+                         float(900) / 960, float(1010) / 1280),
+               'p_health': (float(150) / 960, float(17) / 1280,
+                            float(174) / 960, float(234) / 1280),
+               'p_g': (float(210) / 960, float(126) / 1280,
+                       float(284) / 960, float(150) / 1280),
+               'p_r': (float(210) / 960, float(150) / 1280,
+                       float(284) / 960, float(176) / 1280),
+               'p_y': (float(210) / 960, float(176) / 1280,
+                       float(284) / 960, float(201) / 1280),
+               'p_b': (float(210) / 960, float(201) / 1280,
+                       float(284) / 960, float(228) / 1280),
+               'o_health': (float(150) / 960, float(1046) / 1280,
+                            float(174) / 960, float(1264) / 1280),
+               'o_g': (float(210) / 960, float(1155) / 1280,
+                       float(284) / 960, float(1179) / 1280),
+               'o_r': (float(210) / 960, float(1179) / 1280,
+                       float(284) / 960, float(1206) / 1280),
+               'o_y': (float(210) / 960, float(1206) / 1280,
+                       float(284) / 960, float(1232) / 1280),
+               'o_b': (float(210) / 960, float(1232) / 1280,
+                       float(284) / 960, float(1258) / 1280)}
 
-    # templates
-    _GAME_TEMPLATE_PATHS = {'capture': 'capture template 1280x960.png'}
-    #todo: add other wildcard templates
+    # fill, empty, ignore BGR for the various parts detected with TankLevel
+    _TANK_COLORS = {'health': ((5, 5, 200), (40, 40, 50), (20, 20, 20)),
+                    'g': ((30, 130, 65), (30, 50, 35), (25, 25, 25)),
+                    'r': ((50, 50, 115), (30, 30, 45), (25, 25, 25)),
+                    'y': ((35, 115, 130), (20, 30, 30), (25, 25, 25)),
+                    'b': ((135, 60, 0), (45, 40, 30), (25, 25, 25))}
 
-    # various investigators used to extract data
     _game_finders = {'capture': v.TemplateFinder(_data.capture_template,
                                                  sizes=_GAME_SIZES),
                      'versus': v.TemplateFinder(_data.versus_template,
                                                 sizes=_GAME_SIZES)}
-    _board_finder = v.ProportionalRegion(_BOARD_PROPORTIONS)
-    _board_grid = v.Grid((8, 8), (0, 0, 0, 0))
-    _tile_identifier = v.ImageIdentifier(_data.tile_templates)
+
+    _board_tools = {'region': v.ProportionalRegion(_BOUNDS['board']),
+                    'grid': v.Grid((8, 8), (0, 0, 0, 0)),
+                    'tile_id': v.ImageIdentifier(_data.tile_templates)}
+
+    _player_tools = {'health_region': v.ProportionalRegion(_BOUNDS['p_health']),
+                     'g_region': v.ProportionalRegion(_BOUNDS['p_g']),
+                     'r_region': v.ProportionalRegion(_BOUNDS['p_r']),
+                     'y_region': v.ProportionalRegion(_BOUNDS['p_y']),
+                     'b_region': v.ProportionalRegion(_BOUNDS['p_b']),
+                     'health_tank': v.TankLevel(*_TANK_COLORS['health']),
+                     'g_tank': v.TankLevel(*_TANK_COLORS['g']),
+                     'r_tank': v.TankLevel(*_TANK_COLORS['r']),
+                     'y_tank': v.TankLevel(*_TANK_COLORS['y']),
+                     'b_tank': v.TankLevel(*_TANK_COLORS['b'])}
+
+    _oppnt_tools = {'health_region': v.ProportionalRegion(_BOUNDS['o_health']),
+                    'g_region': v.ProportionalRegion(_BOUNDS['o_g']),
+                    'r_region': v.ProportionalRegion(_BOUNDS['o_r']),
+                    'y_region': v.ProportionalRegion(_BOUNDS['o_y']),
+                    'b_region': v.ProportionalRegion(_BOUNDS['o_b']),
+                    'health_tank': v.TankLevel(*_TANK_COLORS['health']),
+                    'g_tank': v.TankLevel(*_TANK_COLORS['g']),
+                    'r_tank': v.TankLevel(*_TANK_COLORS['r']),
+                    'y_tank': v.TankLevel(*_TANK_COLORS['y']),
+                    'b_tank': v.TankLevel(*_TANK_COLORS['b'])}
+
+    #todo: add other wildcard templates
 
     def get_capture(self):
         """Return the capture board or None if can't find it."""
-        # game image
-        game_img = self._game_image_from_screen('capture')
-        if game_img is None:
-            return None
-        # board object (may be None if not found)
-        board = self.board_from_game_image(game_img)
+        # game
+        game_image = self._game_image_from_screen('capture')
+        if game_image is None:
+            return
+        # board
+        board = self._board_from_game_image(game_image)
+        if board is None:
+            return
         return board
 
     def get_versus(self):
-        """Return the versus board, player, and opponent or None for any
-        that can't be found."""
-        # game image
-        game_img = self._game_image_from_screen('versus')
-        if game_img is None:
-            return None, None, None
-        # board object
-        board = self.board_from_game_image(game_img)
-        # player object
-        player, opponent = self._versus_actors_from_game_image(game_img)
+        """Return the versus board, player, and opponent.
+        Return None for any parts that can't be found.
+        """
+        # game
+        game_image = self._game_image_from_screen('versus')
+        if game_image is None:
+            return None, None, None  # nothing else will work
+        # board
+        board = self._board_from_game_image(game_image)  # may be None
+        # actors
+        player = self._actor_from_game_image('player', game_image)
+        opponent = self._actor_from_game_image('opponent', game_image)
         return board, player, opponent
 
     def _screen_shot(self):
         return v.screen_shot()
 
     def _game_image_from_screen(self, game_type):
-        """Return the game image on the screen or None if can't find it."""
+        """Return the image of the given game type from the screen.
+        Return None if no game is found.
+        """
+        # screen
         screen_img = self._screen_shot()
-        # Use appropriate finder to locate and extract the game from the screen
-        finder = self._game_finders[game_type]
-        game_borders = finder.locate_in(screen_img)
-        if game_borders is None:
-            return None  # soft failure
-        top, left, bottom, right = game_borders
-        game_img = screen_img[top:bottom, left:right]
+        # game image
+        game_rect = self._game_finders[game_type].locate_in(screen_img)
+        if game_rect is None:
+            return
+        t, l, b, r = game_rect
+        game_img = screen_img[t:b, l:r]
         return game_img
 
-    def board_from_game_image(self, game_img):
-        """Return a board object based on the image or
-        None if can't identify tiles."""
-        # Use ProportionalRegion to isolate the board within the game
-        board_borders = self._board_finder.region_in(game_img)
-        top, left, bottom, right = board_borders
-        board_img = game_img[top:bottom, left:right]
-        # Use Grid to split the grid into tile cells and set each real tile
+    def _board_from_game_image(self, game_image):
+        """Return a board object matching the board in the game image.
+        Return None if any tiles are not identified.
+        """
+        # board image
+        board_rect = self._board_tools['region'].region_in(game_image)
+        if board_rect is None:
+            return
+        t, l, b, r = board_rect
+        board_image = game_image[t:b, l:r]
+        # board grid and tiles --> fill in a Board object
         board = Board()
-        for p, borders in self._board_grid.borders_by_grid_position(board_img):
-            top, left, bottom, right = borders
-            tile = board_img[top:bottom, left:right]
-            tile_character = self._tile_identifier.identify(tile)
+        grid = self._board_tools['grid']
+        tile_id = self._board_tools['tile_id']
+        for p, borders in grid.borders_by_grid_position(board_image):
+            t, l, b, r = borders
+            tile = board_image[t:b, l:r]
+            tile_character = tile_id.identify(tile)
             if tile_character is None:
                 return None  # soft failure
             board[p] = Tile.singleton(tile_character)
-        # return the completed board
         return board
 
-    def _versus_actors_from_game_image(self, game_img):
-        return None, None
+    def _actor_from_game_image(self, name, game_image):
+        """Return an actor object matching the one in the game image.
+
+        Note:
+        Health and mana are based on measured percentage of a fixed maximum
+        rather than the actual maximum in the game.
+
+        Arguments:
+        name: must be 'player' or 'opponent'
+        game_image: opencv image of the main game area
+        """
+        HEALTH_MAX = 100
+        MANA_MAX = 40
+        # get the set of tools for investigating this actor
+        tools = {'player': self._player_tools,
+                 'opponent': self._oppnt_tools}[name]
+
+        # setup the arguments to be set:
+        args = [name]
+
+        # health:
+        t, l, b, r = tools['health_region'].region_in(game_image)
+        health_image = game_image[t:b, l:r]
+        health_image = numpy.rot90(health_image)  # upright for the TankLevel
+        health = int(round(HEALTH_MAX
+                           * tools['health_tank'].how_full(health_image)))
+        args.append((health, HEALTH_MAX))
+        # mana
+        for color in ('r', 'g', 'b', 'y'):
+            t, l, b, r = tools[color + '_region'].region_in(game_image)
+            mana_image = game_image[t:b, l:r]
+            mana = int(round(MANA_MAX
+                             * tools[color + '_tank'].how_full(mana_image)))
+            args.append((mana, MANA_MAX))
+        # experience and coins simply start at zero
+        x_m = (0, 1000), (0, 1000)
+        args.extend(x_m)
+        # hammer and scroll are unused
+        h_c = (0, 0), (0, 0)
+        args.extend(h_c)
+        # build the actor and return it
+        return Actor(*args)
 
     def generic_versus_actors(self):
         health = 50, 100

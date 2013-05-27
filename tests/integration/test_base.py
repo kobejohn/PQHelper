@@ -26,7 +26,8 @@ class Test_StateInvestigator(unittest.TestCase):
 
     def test_get_capture_returns_None_if_tile_can_not_be_identified(self):
         si = StateInvestigator()
-        with patch.object(si._tile_identifier, 'identify') as m_identify:
+        identifier = si._board_tools['tile_id']
+        with patch.object(identifier, 'identify') as m_identify:
             m_identify.return_value = None
             board = si.get_capture()
         self.assertIsNone(board)
@@ -63,7 +64,8 @@ class Test_StateInvestigator(unittest.TestCase):
 
     def test_get_versus_returns_None_board_if_tile_can_not_be_identified(self):
         si = StateInvestigator()
-        with patch.object(si._tile_identifier, 'identify') as m_identify:
+        identifier = si._board_tools['tile_id']
+        with patch.object(identifier, 'identify') as m_identify:
             m_identify.return_value = None
             board, player, opponent = si.get_versus()
         self.assertIsNone(board)
@@ -88,42 +90,47 @@ class Test_StateInvestigator(unittest.TestCase):
                             'xsgmmsgs\n'\
                             'ggsxggxm'
         self.assertEqual(str(board), board_string_spec)
+        # current specification is based on relative values rather than absolute
+        # due to lack of character recognition on the StateInvestigator
+        health_max_spec = 100
+        health_tolerance = 10  # +/- 10%; health is bigger and easier to measure
+        mana_max_spec = 40
+        mana_tolerance = 8  # +/- 20%; mana can be very small. more error
         # confirm that the player is correct
-        if player is None:
-            self.fail('Looks like player investigation not yet implemented')
-        p_health_spec, p_health_max_spec = (95, 120)  # max is approximate
-        p_g_spec, p_g_max_spec = 14, 30  # max is approximate
-        p_r_spec, p_r_max_spec = 29, 40  # max is approximate
-        p_y_spec, p_y_max_spec = 4, 40  # max is approximate
-        p_b_spec, p_b_max_spec = 7, 30  # max is approximate
-        self.assertAlmostEqual(player.health, p_health_spec, delta=5)
-        self.assertAlmostEqual(player.g, p_g_spec, delta=5)
-        self.assertAlmostEqual(player.r, p_r_spec, delta=5)
-        self.assertAlmostEqual(player.y, p_y_spec, delta=5)
-        self.assertAlmostEqual(player.b, p_b_spec, delta=5)
-        self.assertAlmostEqual(player.health_max, p_health_spec, delta=5)
-        self.assertAlmostEqual(player.g_max, p_g_max_spec, delta=5)
-        self.assertAlmostEqual(player.r_max, p_r_max_spec, delta=5)
-        self.assertAlmostEqual(player.y_max, p_y_max_spec, delta=5)
-        self.assertAlmostEqual(player.b_max, p_b_max_spec, delta=5)
+        p_health_spec = health_max_spec * float(95) / 120  # max is appropriate
+        p_g_spec = mana_max_spec * float(14) / 30  # max is approximate
+        p_r_spec = mana_max_spec * float(29) / 40  # max is approximate
+        p_y_spec = mana_max_spec * float(4) / 40  # max is approximate
+        p_b_spec = mana_max_spec * float(7) / 30  # max is approximate
+        self.assertAlmostEqual(player.health, p_health_spec,
+                               delta=health_tolerance)
+        self.assertAlmostEqual(player.g, p_g_spec, delta=mana_tolerance)
+        self.assertAlmostEqual(player.r, p_r_spec, delta=mana_tolerance)
+        self.assertAlmostEqual(player.y, p_y_spec, delta=mana_tolerance)
+        self.assertAlmostEqual(player.b, p_b_spec, delta=mana_tolerance)
+        self.assertEqual(player.health_max, health_max_spec)
+        self.assertEqual(player.g_max, mana_max_spec)
+        self.assertEqual(player.r_max, mana_max_spec)
+        self.assertEqual(player.y_max, mana_max_spec)
+        self.assertEqual(player.b_max, mana_max_spec)
         # confirm that the opponent is correct
-        if opponent is None:
-            self.fail('Looks like opponent investigation not yet implemented')
-        o_health_spec, o_health_max_spec = (51, 114)  # max is approximate
-        o_g_spec, o_g_max_spec = 8, 30  # max is approximate
-        o_r_spec, o_r_max_spec = 32, 32  # max is approximate
-        o_y_spec, o_y_max_spec = 15, 28  # max is approximate
-        o_b_spec, o_b_max_spec = 23, 28  # max is approximate
-        self.assertAlmostEqual(opponent.health, o_health_spec, delta=5)
-        self.assertAlmostEqual(opponent.g, o_g_spec, delta=5)
-        self.assertAlmostEqual(opponent.r, o_r_spec, delta=5)
-        self.assertAlmostEqual(opponent.y, o_y_spec, delta=5)
-        self.assertAlmostEqual(opponent.b, o_b_spec, delta=5)
-        self.assertAlmostEqual(opponent.health_max, o_health_spec, delta=5)
-        self.assertAlmostEqual(opponent.g_max, o_g_max_spec, delta=5)
-        self.assertAlmostEqual(opponent.r_max, o_r_max_spec, delta=5)
-        self.assertAlmostEqual(opponent.y_max, o_y_max_spec, delta=5)
-        self.assertAlmostEqual(opponent.b_max, o_b_max_spec, delta=5)
+        o_health_spec = health_max_spec * float(51) / 114  # max is approximate
+        o_g_spec = mana_max_spec * float(8) / 30  # max is approximate
+        o_r_spec = mana_max_spec * float(32) / 32  # max is approximate
+        o_y_spec = mana_max_spec * float(15) / 28  # max is approximate
+        o_b_spec = mana_max_spec * float(23) / 28  # max is approximate
+        self.assertAlmostEqual(opponent.health, o_health_spec,
+                               delta=health_tolerance)
+        self.assertAlmostEqual(opponent.g, o_g_spec, delta=mana_tolerance)
+        self.assertAlmostEqual(opponent.r, o_r_spec, delta=mana_tolerance)
+        self.assertAlmostEqual(opponent.y, o_y_spec, delta=mana_tolerance)
+        self.assertAlmostEqual(opponent.b, o_b_spec, delta=mana_tolerance)
+        self.assertEqual(opponent.health_max, health_max_spec)
+        self.assertEqual(opponent.g_max, mana_max_spec)
+        self.assertEqual(opponent.r_max, mana_max_spec)
+        self.assertEqual(opponent.y_max, mana_max_spec)
+        self.assertEqual(opponent.b_max, mana_max_spec)
+
 
     def test_generic_versus_actors_produces_average_player_and_opponent(self):
         # this is a stopgap until actor investigation is implemented
