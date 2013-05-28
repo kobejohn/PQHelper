@@ -61,8 +61,12 @@ class Advisor(object):
             except KeyError:  # leaves are own realistic end
                 realistic_ends = [node]
             # identify the "best" end for this node
-            active = node.parent.passive
-            passive = node.parent.active
+            if node is root_action:
+                active = node.parent.active
+                passive = node.parent.passive
+            else:
+                active = node.parent.passive
+                passive = node.parent.active
             ends_by_score = dict()
             for realistic_end in realistic_ends:
                 # determine the relative score. i.e. if delta is positive
@@ -102,7 +106,11 @@ class Advisor(object):
         end_state = eot.parent
         a = {'player': end_state.player,
              'opponent': end_state.opponent}[actor.name]
-        return sum((a.health, a.r, a.g, a.b, a.y, a.x, a.m))
+        # simple prioritization without regard to character attributes
+        health = a.health * 2
+        r, g, b, y = a.r, a.g, a.b, a.y
+        x, m = 0.5 * a.x, 0.5 * a.m
+        return sum((health, r, g, b, y, x, m))
 
     def _summarize_result(self, root_action, leaf_eot):
         """Return a dict with useful information that summarizes this action."""
