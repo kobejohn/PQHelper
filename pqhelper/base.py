@@ -68,7 +68,9 @@ class StateInvestigator(object):
 
     _board_tools = {'region': v.ProportionalRegion(_BOUNDS['board']),
                     'grid': v.Grid((8, 8), (0, 0, 0, 0)),
-                    'tile_id': v.ImageIdentifier(_data.tile_templates)}
+                    'tile_id': v.ImageIdentifier(_data.tile_templates,
+                                                 acceptable_threshold=0.2,
+                                                 immediate_threshold=0.05)}
 
     _player_tools = {'health_region': v.ProportionalRegion(_BOUNDS['p_health']),
                      'g_region': v.ProportionalRegion(_BOUNDS['p_g']),
