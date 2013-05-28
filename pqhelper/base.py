@@ -57,10 +57,14 @@ class StateInvestigator(object):
 
     _game_finders = {'capture': v.TemplateFinder(_data.capture_template,
                                                  sizes=_GAME_SIZES,
-                                                 scale_for_speed=0.5),
+                                                 scale_for_speed=0.5,
+                                                 immediate_threshold=0.05,
+                                                 acceptable_threshold=0.1),
                      'versus': v.TemplateFinder(_data.versus_template,
                                                 sizes=_GAME_SIZES,
-                                                scale_for_speed=0.5)}
+                                                scale_for_speed=0.5,
+                                                immediate_threshold=0.1,
+                                                acceptable_threshold=0.3)}
 
     _board_tools = {'region': v.ProportionalRegion(_BOUNDS['board']),
                     'grid': v.Grid((8, 8), (0, 0, 0, 0)),
