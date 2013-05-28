@@ -44,57 +44,74 @@ class Advisor(object):
         Scoring assumes that each actor makes the "best" choices in their turn
         based on the simulation available.
         """
+        def is_target_node(node):
+            return isinstance(node, base.EOT) or (node is root_action)
         # store per-turn results from the bottom up.
-        # this action's results will eventually be stored under action itself
-        realistic_results_by_EOT = dict()
-        for node in root_action.post_order_nodes:  # bottom up traversal
+        realistic_ends_by_node = dict()
+        for node in root_action.post_order_nodes:  # bottom up to this action
             # only work with EOT or the root action
-            if not (isinstance(node, base.EOT) or (node is root_action)):
+            if not is_target_node(node):
                 continue
-            # by the time this node is reached, all children have been scored
-            # so get all the realistic results below it
+            # by the time this node is reached, the results of all children
+            # have been stored under it in realistic_ends (except leaves)
+            # so choose the best of the available results and send it
+            # up to the next valid node
             try:  # get the results stored previously in the deeper turn
-                realistic_results = realistic_results_by_EOT[node]
-            except KeyError:  # leaves are own realistic result
-                realistic_results = [{'overall': self._score_eot(node)}]
-            # get the most realistic result for the turn of this node
-            was_players_turn = node.parent.active is node.parent.opponent
-            min_max = max if was_players_turn else min
-            realistic_result = min_max(realistic_results,
-                                       key=lambda summary: summary['overall'])
+                realistic_ends = realistic_ends_by_node[node]
+            except KeyError:  # leaves are own realistic end
+                realistic_ends = [node]
+            # identify the "best" end for this node
+            active = node.parent.passive
+            passive = node.parent.active
+            ends_by_score = dict()
+            for realistic_end in realistic_ends:
+                # determine the relative score. i.e. if delta is positive
+                # then the end result is better for active than passive
+                relative_score = self._relative_score(node, realistic_end,
+                                                      active, passive)
+                ends_by_score[relative_score] = realistic_end
+            best_end = ends_by_score[max(ends_by_score.keys())]
+            # done after determining realistic result for root action
             if node is root_action:
-                break  # done after determining realistic result for root action
-            # place the most realistic result on the parent EOT's list
+                return self._summarize_result(root_action, best_end)
+            # not done: place best end on the parent EOT's list of possibilities
             parent = node.parent
             while parent:
-                if isinstance(parent, base.EOT) or (parent is root_action):
+                if is_target_node(parent):
                     break
-                parent = parent.parent  # keep moving up until EOT found
+                parent = parent.parent  # keep moving up until target found
             # at this point the parent is either root_action or another EOT
-            # so put the most realistic result of this EOT on the parent's list
-            realistic_results_by_EOT.setdefault(parent,
-                                                list()).append(realistic_result)
-        # action_results = realistic_results_by_EOT[root_action]
-        # best_summary = max(action_results, key=lambda score: score['overall'])
-        # # add the root_action details to the summary at the end
-        # best_summary['action'] = root_action.position_pair
-        final_realistic_result = realistic_results_by_EOT[root_action][0]
-        final_realistic_result['action'] = root_action.position_pair
-        return final_realistic_result
+            realistic_ends_by_node.setdefault(parent, list()).append(best_end)
+        pass  # the algorithm should never reach this point...
 
-    def _score_eot(self, eot):
-        """Return a score for this eot."""
-        player_score = self._score_for_actor(eot.parent.player)
-        opponent_score = self._score_for_actor(eot.parent.opponent)
-        return player_score - opponent_score
+    def _relative_score(self, start_eot, end_eot, active, passive):
+        """Return the balance of perception between the two nodes.
+        A positive score indicates the result is relatively better for active.
+        """
+        active_start = self._score_eot_for_actor(start_eot, active)
+        passive_start = self._score_eot_for_actor(start_eot, passive)
+        active_end = self._score_eot_for_actor(end_eot, active)
+        passive_end = self._score_eot_for_actor(end_eot, passive)
+        return (active_end - passive_end) - (active_start - passive_start)
 
-    def _score_for_actor(self, actor):
-        """Have the actor self-evaluate all available information."""
+    def _score_eot_for_actor(self, eot, actor):
+        """Have the actor evaluate the end of turn for itself only."""
         # currently just simple sum of own attributes
         # could be much more sophisticated in both analysis (e.g. formulas)
         # and breadth of items analyzed (e.g. require other actor, the board)
-        a = actor
+        end_state = eot.parent
+        a = {'player': end_state.player,
+             'opponent': end_state.opponent}[actor.name]
         return sum((a.health, a.r, a.g, a.b, a.y, a.x, a.m))
+
+    def _summarize_result(self, root_action, leaf_eot):
+        """Return a dict with useful information that summarizes this action."""
+        summary = dict()
+        summary['overall'] = self._relative_score(root_action, leaf_eot,
+                                                 root_action.parent.player,
+                                                 root_action.parent.opponent)
+        summary['action'] = root_action.position_pair
+        return summary
 
 
 if __name__ == '__main__':
