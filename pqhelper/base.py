@@ -50,10 +50,10 @@ class StateInvestigator(object):
 
     # fill, empty, ignore BGR for the various parts detected with TankLevel
     _TANK_COLORS = {'health': ((5, 5, 200), (40, 40, 50), (20, 20, 20)),
-                    'g': ((30, 130, 65), (30, 50, 35), (25, 25, 25)),
-                    'r': ((50, 50, 115), (30, 30, 45), (25, 25, 25)),
-                    'y': ((35, 115, 130), (20, 30, 30), (25, 25, 25)),
-                    'b': ((135, 60, 0), (45, 40, 30), (25, 25, 25))}
+                    'g': ((0, 135, 0), (30, 45, 30), (25, 25, 25)),
+                    'r': ((0, 0, 135), (30, 30, 45), (25, 25, 25)),
+                    'y': ((0, 135, 135), (20, 40, 40), (25, 25, 25)),
+                    'b': ((135, 0, 0), (45, 30, 30), (25, 25, 25))}
 
     _game_finders = {'capture': v.TemplateFinder(_data.capture_template,
                                                  sizes=_GAME_SIZES,
