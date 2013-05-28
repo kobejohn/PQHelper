@@ -1,28 +1,29 @@
 PQHelper
 ========
 
-PQHelper takes any on-screen game of Puzzle Quest(tm), simulates one or more
-turns, and then gives the user a scored set of options.
+PQHelper takes any on-screen game of Puzzle Quest(tm) and then gives the user
+appropriate advice for each type of game (capture, versus, forge, research).
 
 
 Status
 ======
 
-In summary, it is functional from the command line. It will get a UI + Image
-Extraction capability next to make it useful in realtime.
+It is completely function for capture and versus from the command line.
+Game data for capture and versus are extracted from the screen (doesn't touch
+the application directly).
 
-- Capture solution: works from command line. solutions are relatively fast.
-- Versus advice: works for swaps from command line. spells not implemented
-- Forge, Research: not implemented but have previous code to work from
-- Screen data extraction: not implemented but have previous code to work from
-- GUI: not implemented but have previous code to work from
+- Capture solution: Solutions are relatively fast.
+- Versus advice: Gives scored choices based on how many turns you simulate.
+- Forge, Research: May be implemented.
+- GUI: May be implemented.
+
 
 Command Line Usage per Game Type
 ================
 
 **Capture:**
 
-    from pqhelper import capture
+    import pqhelper
 
     # Capture is very easy to use and relatively quick to find a solution.
     catapult = '''
@@ -36,16 +37,19 @@ Command Line Usage per Game Type
                ssxssrss
                '''
     print 'Trying to capture the catapult:\n{}'.format(catapult)
-    solution = capture.capture(capture.Board(catapult))
+    # patch the screen investigation system to just use the catapult
+    # usually, just call the method and it gets everything from the game on screen
+    pqhelper._state_investigator.get_capture = lambda: pqhelper.Board(catapult)
+    solution = pqhelper.solve_capture()
     for solution_step in solution:
         print solution_step
 
 
 **Versus:**
 
-    from pqhelper import versus
+    import pqhelper
 
-    # First, make a board, player and opponent that make up the start state
+    # Versus has more parts (board, player, opponent) but easy to use.
     board_string_8_choices = '''
                              gyrybrmg
                              xmxbgymm
@@ -56,41 +60,17 @@ Command Line Usage per Game Type
                              gxmxgybb
                              mbbyssyx
                              '''
-    board = versus.Board(board_string_8_choices)
-    # Player / Opponent Actors are initialized by their current / maximum values
-    current_and_maximum = c_m = (50, 100)  # or whatever values for mana, etc.
-    player = versus.Actor('player', c_m, c_m, c_m, c_m, c_m, c_m, c_m, c_m, c_m)
-    opponent = versus.Actor('opponent', c_m, c_m, c_m, c_m, c_m, c_m, c_m, c_m, c_m)
+    print 'Analyzing the versus game:\n{}'.format(board_string_8_choices)
+    # patch the screen investigation system to use our own board, player, opponent
+    # usually, just call the method and it gets everything from the game on screen
+    board = pqhelper.Board(board_string_8_choices)
+    player, opponent = pqhelper._state_investigator.generic_versus_actors()
+    pqhelper._state_investigator.get_versus = lambda: (board, player, opponent)
 
-    # Now make the advisor which manages the internal simulation details
-    advisor = versus.Advisor()
-    advisor.reset(board, player, opponent)  # reset the simulation
-
-    # Simulate a single turn and get a sorted list of options
-    advisor.simulate_next_turn()
-    summaries = advisor.sorted_current_summaries()
-
-    # Print some details before going to turn 2
-    top_choice = summaries[0]
-    bottom_choice = summaries[-1]
-    print 'Original board:\n{}'.format(board)
-    print '{} swaps available'.format(len(summaries))
-    print 'Top choice after simulating 1 turn: {}'.format(top_choice)
-    print 'Bottom choice after simulating 1 turn: {}'.format(bottom_choice)
-
-    # Simulate a second turn and get a new sorted list of options
-    advisor.simulate_next_turn()
-    summaries = advisor.sorted_current_summaries()
-
-    # Print revised details after turn 2
-    top_choice = summaries[0]
-    bottom_choice = summaries[-1]
-    print 'Top choice after simulating 2 turns: {}'.format(top_choice)
-    print 'Bottom choice after simulating 2 turns: {}'.format(bottom_choice)
-
-**Forge: Planned**
-
-**Research: Planned**
+    # Simulate two turns (with the versus module, you can simulate turn by turn)
+    summaries = pqhelper.summarize_versus_options(2)
+    for summary in summaries:
+        print summary
 
 
 License:

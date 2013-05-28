@@ -1,8 +1,12 @@
-import base, capture, versus
+import base
+import capture
+import versus
 
 
 _state_investigator = base.StateInvestigator()
 _versus_advisor = versus.Advisor()
+Board = base.Board  # top level access for convenience
+Actor = base.Actor  # top level access for convenience
 
 
 def summarize_versus_options(turns=1):
