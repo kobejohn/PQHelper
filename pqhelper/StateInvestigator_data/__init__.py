@@ -20,4 +20,10 @@ tile_templates = {'.': cv2.imread(os.path.join(_base, '..png')),
                   '*': cv2.imread(os.path.join(_base, '@.png')),
                   'c': cv2.imread(os.path.join(_base, 'c.png')),
                   'h': cv2.imread(os.path.join(_base, 'h.png')),
-                  '4': cv2.imread(os.path.join(_base, '4.png'))}
+                  '2': cv2.imread(os.path.join(_base, '2.png')),
+                  '3': cv2.imread(os.path.join(_base, '3.png')),
+                  '4': cv2.imread(os.path.join(_base, '4.png')),
+                  '5': cv2.imread(os.path.join(_base, '5.png')),
+                  '6': cv2.imread(os.path.join(_base, '6.png')),
+                  '7': cv2.imread(os.path.join(_base, '7.png')),
+                  '8': cv2.imread(os.path.join(_base, '8.png'))}

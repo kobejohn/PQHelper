@@ -94,8 +94,6 @@ class StateInvestigator(object):
                     'y_tank': v.TankLevel(*_TANK_COLORS['y']),
                     'b_tank': v.TankLevel(*_TANK_COLORS['b'])}
 
-    #todo: add other wildcard templates
-
     def get_capture(self):
         """Return the capture board or None if can't find it."""
         # game
