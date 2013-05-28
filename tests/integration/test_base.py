@@ -93,9 +93,9 @@ class Test_StateInvestigator(unittest.TestCase):
         # current specification is based on relative values rather than absolute
         # due to lack of character recognition on the StateInvestigator
         health_max_spec = 100
-        health_tolerance = 10  # +/- 10%; health is bigger and easier to measure
+        health_tolerance = 20  # +/- 20%
         mana_max_spec = 40
-        mana_tolerance = 8  # +/- 20%; mana can be very small. more error
+        mana_tolerance = 8  # +/- 20%
         # confirm that the player is correct
         p_health_spec = health_max_spec * float(95) / 120  # max is appropriate
         p_g_spec = mana_max_spec * float(14) / 30  # max is approximate
