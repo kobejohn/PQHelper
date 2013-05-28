@@ -19,6 +19,7 @@ player, opponent = pqhelper._state_investigator.generic_versus_actors()
 pqhelper._state_investigator.get_versus = lambda: (board, player, opponent)
 
 # Simulate two turns (with the versus module, you can simulate turn by turn)
-summaries = pqhelper.summarize_versus_options(2)
+# Also runs the same simulation twice to smooth out the effects of random drops
+summaries = pqhelper.summarize_versus_options(turns=2, sims_to_average=2)
 for summary in summaries:
     print summary

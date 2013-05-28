@@ -116,8 +116,8 @@ class Advisor(object):
         """Return a dict with useful information that summarizes this action."""
         summary = dict()
         summary['overall'] = self._relative_score(root_action, leaf_eot,
-                                                 root_action.parent.player,
-                                                 root_action.parent.opponent)
+                                                  root_action.parent.player,
+                                                  root_action.parent.opponent)
         summary['action'] = root_action.position_pair
         return summary
 
