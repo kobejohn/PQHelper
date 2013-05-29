@@ -431,6 +431,45 @@ class Test_Game(unittest.TestCase):
         # confirm board that is possible only after an extra action
         self.assertEqual(str(last_state.board), after_bonus_board_string)
 
+    def test_ends_of_one_state_simulates_only_one_bonus_action(self):
+        # run a board that has a chain reaction, each with 4+ blocks.
+        # confirm that only one bonus action is created
+        double_bonus_action_board_string = '....y...\n'\
+                                           '.mm...yy\n'\
+                                           '......xx\n'\
+                                           '...m....\n'\
+                                           '...2....\n'\
+                                           '...2....\n'\
+                                           '...2x...\n'\
+                                           '...mr...'
+        end_board_string_1 = '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '....y.yy'
+        end_board_string_2 = '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '........\n'\
+                             '....x.xx'
+
+        game = generic_game(use_random_fill=False)
+        root = generic_state(board=Board(double_bonus_action_board_string))
+        eots = list(game.ends_of_one_state(root=root))
+        last_boards = list(str(eot.parent.board) for eot in eots)
+        # confirm 2 results
+        self.assertEqual(len(last_boards), 2)
+        # confirm boards have exactly one action remaining
+        # i.e. didn't do two bonus moves
+        last_boards_spec = (end_board_string_1, end_board_string_2)
+        self.assertItemsEqual(last_boards, last_boards_spec)
+
     def test_ends_of_one_state_simulates_tile_effects_on_actors(self):
         # this board has the same move available in the first and second turns
         # the move gives x to the active actor and damages the passive actor
@@ -529,7 +568,6 @@ class Test_Game(unittest.TestCase):
                                  5: 20,
                                  6: 20,
                                  7: 0}  # ignores mana drains
-        eots = tuple()  # just to satisfy the IDE
         # check each turn
         for i in range(1, len(results_per_turn_spec) + 1):
             eots = list(game.ends_of_next_whole_turn(root))

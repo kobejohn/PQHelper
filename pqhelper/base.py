@@ -144,8 +144,6 @@ class StateInvestigator(object):
         """
         # board image
         board_rect = self._board_tools['region'].region_in(game_image)
-        if board_rect is None:
-            return
         t, l, b, r = board_rect
         board_image = game_image[t:b, l:r]
         # board grid and tiles --> fill in a Board object
