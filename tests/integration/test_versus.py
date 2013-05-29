@@ -213,14 +213,6 @@ def generic_advisor(board_string, player=None, opponent=None,
     return advisor
 
 
-def generic_state(board=None, turn=1, actions_remaining=1):
-    """Simple factory to help keep tests short and focused."""
-    board = board or Board()
-    v = (0, 0)
-    one_actor = Actor('capture', v, v, v, v, v, v, v, v, v)
-    return State(board, one_actor, one_actor, turn, actions_remaining)
-
-
 def generic_actor(name=None, health=None,
                   r=None, g=None, b=None, y=None,
                   x=None, m=None, h=None, c=None):

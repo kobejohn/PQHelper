@@ -539,7 +539,7 @@ class Test_Game(unittest.TestCase):
                              'Unexpectedly found {} results for turn {}'
                              ' instead of expected {} results.'
                              ''.format(eot_len, i, eot_len_spec))
-        # confirm content of final ends of turn :64 of the same mana drain
+        # confirm content of final ends of turn all the same mana drain
         final_board_string = '........\n'\
                              '........\n'\
                              '........\n'\
@@ -548,7 +548,7 @@ class Test_Game(unittest.TestCase):
                              '........\n'\
                              '........\n'\
                              '.x....x.'
-        for eot in eots:
+        for eot in root.leaves:
             self.assertEqual(str(eot.parent.board), final_board_string,
                              'Unexpectedly got this end of turn board:\n{}'
                              '\nbut was expecting this one:\n{}'
@@ -852,8 +852,7 @@ class Test_Board(unittest.TestCase):
     # Execution - execute_once with / without random fill (core behavior)
     def test_execute_once_with_random_fill_fills_empty_board(self):
         board = Board()
-        if not board.is_empty():
-            self.fail('Expected an empty board to start.')
+        board._array.fill(Tile('.'))
         result_board, x = board.execute_once(random_fill=True)
         self.assertFalse(result_board.is_empty(),
                          'Expected to find a full board but found this:\n{}'
@@ -861,8 +860,7 @@ class Test_Board(unittest.TestCase):
 
     def test_execute_once_without_random_fill_leaves_empty_board_empty(self):
         board = Board()
-        if not board.is_empty():
-            self.fail('Expected an empty board to start.')
+        board._array.fill(Tile('.'))
         result_board, x = board.execute_once(random_fill=False)
         self.assertTrue(result_board.is_empty(),
                         'Expected to find a full board but found this:\n{}'
@@ -1114,9 +1112,7 @@ class Test_Board(unittest.TestCase):
     # Execution - random_fill (core behavior)
     def test__random_fill_fills_an_empty_board(self):
         board = Board()
-        if not board.is_empty():
-            self.fail('Expected the starting board to be empty for testing but'
-                      ' got this board:\n{}'.format(board))
+        board._array.fill(Tile('.'))
         board._random_fill()
         for p, tile in board.positions_with_tile():
             self.assertFalse(tile.is_blank())
