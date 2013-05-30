@@ -3,7 +3,7 @@ import random
 
 import numpy
 
-import pqhelper.StateInvestigator_data as _data
+import pqhelper.data as pq_data
 from investigators import visuals as v
 from treenode import TreeNode
 
@@ -59,12 +59,12 @@ class StateInvestigator(object):
                     'y': ((0, 135, 135), (20, 40, 40), (25, 25, 25)),
                     'b': ((135, 0, 0), (45, 30, 30), (25, 25, 25))}
 
-    _game_finders = {'capture': v.TemplateFinder(_data.capture_template,
+    _game_finders = {'capture': v.TemplateFinder(pq_data.capture_template,
                                                  sizes=_GAME_SIZES,
                                                  scale_for_speed=0.5,
                                                  immediate_threshold=0.1,
                                                  acceptable_threshold=0.3),
-                     'versus': v.TemplateFinder(_data.versus_template,
+                     'versus': v.TemplateFinder(pq_data.versus_template,
                                                 sizes=_GAME_SIZES,
                                                 scale_for_speed=0.5,
                                                 immediate_threshold=0.1,
@@ -72,7 +72,7 @@ class StateInvestigator(object):
 
     _board_tools = {'region': v.ProportionalRegion(_BOUNDS['board']),
                     'grid': v.Grid((8, 8), (0, 0, 0, 0)),
-                    'tile_id': v.ImageIdentifier(_data.tile_templates,
+                    'tile_id': v.ImageIdentifier(pq_data.tile_templates,
                                                  acceptable_threshold=0.2,
                                                  immediate_threshold=0.05)}
 
