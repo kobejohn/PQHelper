@@ -100,7 +100,7 @@ class Test_Advisor(unittest.TestCase):
         # sim and confirm chocies for turn 1
         advisor.simulate_next_turn()
         summaries_turn_1 = advisor.sorted_current_summaries()
-        swaps_turn_1 = [summary['action'] for summary in summaries_turn_1]
+        swaps_turn_1 = [summary.action for summary in summaries_turn_1]
         swaps_spec = (((7, 0), (7, 1)),
                       ((7, 3), (7, 4)),
                       ((7, 6), (7, 7)))
@@ -114,11 +114,11 @@ class Test_Advisor(unittest.TestCase):
         # sim and store choices for turn 1
         advisor.simulate_next_turn()
         summaries_turn_1 = advisor.sorted_current_summaries()
-        swaps_turn_1 = [summary['action'] for summary in summaries_turn_1]
+        swaps_turn_1 = [summary.action for summary in summaries_turn_1]
         # sim and store choices for turn 2
         advisor.simulate_next_turn()
         summaries_turn_2 = advisor.sorted_current_summaries()
-        swaps_turn_2 = [summary['action'] for summary in summaries_turn_2]
+        swaps_turn_2 = [summary.action for summary in summaries_turn_2]
         # confirm the choices are the same between turn 1 and turn 2
         self.assertItemsEqual(swaps_turn_1, swaps_turn_2,
                               'Unexpectedly found different root choices'
@@ -155,7 +155,7 @@ class Test_Advisor(unittest.TestCase):
         ordered_swaps_turn_1_spec = (left_swap,  # 4 reds 2 * (1 + 1)
                                      right_swap)  # 3 reds
         summaries_turn_1 = advisor.sorted_current_summaries()
-        ordered_swaps_turn_1 = [summary['action']
+        ordered_swaps_turn_1 = [summary.action
                                 for summary in summaries_turn_1]
         self.assertSequenceEqual(ordered_swaps_turn_1,
                                  ordered_swaps_turn_1_spec,
@@ -169,7 +169,7 @@ class Test_Advisor(unittest.TestCase):
         advisor.simulate_next_turn()
         ordered_swaps_turn_2_spec = (right_swap, left_swap)
         summaries_turn_2 = advisor.sorted_current_summaries()
-        ordered_swaps_turn_2 = [summary['action']
+        ordered_swaps_turn_2 = [summary.action
                                 for summary in summaries_turn_2]
         self.assertSequenceEqual(ordered_swaps_turn_2,
                                  ordered_swaps_turn_2_spec,
@@ -184,12 +184,12 @@ class Test_Advisor(unittest.TestCase):
         # sim and store scoring for turn 1
         advisor.simulate_next_turn()
         summaries_turn_1 = advisor.sorted_current_summaries()
-        overalls_turn_1 = [summary['overall']
+        overalls_turn_1 = [summary.score
                            for summary in summaries_turn_1]
         # sim and store scoring for turn 2
         advisor.simulate_next_turn()
         summaries_turn_2 = advisor.sorted_current_summaries()
-        overalls_turn_2 = [summary['overall']
+        overalls_turn_2 = [summary.score
                            for summary in summaries_turn_2]
         # confirm the scoring is different between turn 1 and turn 2
         items_were_equal = True

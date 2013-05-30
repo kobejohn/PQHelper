@@ -18,4 +18,4 @@ print 'Trying to capture the catapult:\n{}'.format(catapult)
 pqhelper.easy._state_investigator.get_capture = lambda: pqhelper.Board(catapult)
 solution = pqhelper.capture_solution()
 for solution_step in solution:
-    print solution_step
+    print solution_step.action

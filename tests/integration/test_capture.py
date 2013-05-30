@@ -16,12 +16,13 @@ class Test_capture(unittest.TestCase):
                        '..rryyry'
         board = Board(board_string)
         solution = capture(board)
+        solution_swaps = [summary.action for summary in solution]
         # confirm that the solution matches the specification
-        solution_spec = (((7, 6), (7, 7)), ((7, 6), (7, 7)))
-        self.assertSequenceEqual(solution, solution_spec,
+        solution_swaps_spec = (((7, 6), (7, 7)), ((7, 6), (7, 7)))
+        self.assertSequenceEqual(solution_swaps, solution_swaps_spec,
                                  'Expected to get this solution:\n{}\nbut got'
                                  ' this:\n{}'
-                                 ''.format(solution_spec, solution))
+                                 ''.format(solution_swaps_spec, solution_swaps))
 
 
 class Test_Capture_Game(unittest.TestCase):

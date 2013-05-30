@@ -35,7 +35,12 @@ class Advisor(object):
             summaries.append(summary)
         # sort to the benefit of player (descending overall score)
         summaries.sort(key=lambda summary: summary['overall'], reverse=True)
-        return summaries
+        # convert to standard summaries:
+        summaries_std = (base.Summary(self._root.board, s['action'],
+                                      s['overall'],
+                                      'Score: {:.1f}'.format(s['overall']))
+                         for s in summaries)
+        return summaries_std
 
     def _summarize_action(self, root_action):
         """Return a dictionary with various information about this root_action.

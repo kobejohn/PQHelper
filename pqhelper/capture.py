@@ -7,7 +7,7 @@ Board = base.Board
 def capture(board):
     """Try to solve the board described by board_string.
 
-    Return tuple of swaps in the order required to solve the board.
+    Return sequence of summaries that describe how to get to the solution.
     """
     game = Game()
     v = (0, 0)
@@ -27,10 +27,12 @@ def capture(board):
         node = solution_node
         while node:
             # record each swap in the path to the root
-            try:
-                solution_sequence.append(node.position_pair)
-            except AttributeError:
-                pass  # whoops. not a Swap node
+            if not isinstance(node, base.Swap):
+                node = node.parent
+                continue
+            summary = base.Summary(node.parent.board, node.position_pair,
+                                   None, None)
+            solution_sequence.append(summary)
             node = node.parent
     return tuple(reversed(solution_sequence))
 

@@ -42,7 +42,7 @@ Command Line Usage per Game Type
     pqhelper._state_investigator.get_capture = lambda: pqhelper.Board(catapult)
     solution = pqhelper.solve_capture()
     for solution_step in solution:
-        print solution_step
+        print solution_step.action
 
 
 **Versus:**
@@ -71,7 +71,9 @@ Command Line Usage per Game Type
     # Also runs the same simulation twice to smooth out the effects of random drops
     summaries = pqhelper.summarize_versus_options(turns=2, sims_to_average=2)
     for summary in summaries:
-        print summary
+        print '--------------------'
+        print summary.text
+        print summary.action
 
 
 License:

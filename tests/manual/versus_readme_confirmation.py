@@ -23,4 +23,6 @@ pqhelper.easy._state_investigator.get_versus = lambda: (board, player, opponent)
 # Also runs the same simulation twice to smooth out the effects of random drops
 summaries = pqhelper.versus_summaries(turns=2, sims_to_average=2)
 for summary in summaries:
-    print summary
+    print '--------------------'
+    print summary.text
+    print summary.action

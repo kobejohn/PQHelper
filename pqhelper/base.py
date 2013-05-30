@@ -1,3 +1,4 @@
+from collections import namedtuple
 import random
 
 import numpy
@@ -5,6 +6,9 @@ import numpy
 import pqhelper.StateInvestigator_data as _data
 from investigators import visuals as v
 from treenode import TreeNode
+
+
+Summary = namedtuple('Summary', ('board', 'action', 'score', 'text'))
 
 
 class StateInvestigator(object):

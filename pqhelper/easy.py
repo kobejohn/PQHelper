@@ -20,17 +20,18 @@ def versus_summaries(turns=2, sims_to_average=2):
         summaries = _versus_advisor.sorted_current_summaries()
         # group the summaries by the action for easy averaging later
         for summary in summaries:
-            action = summary['action']
+            action = summary.action
             summaries_by_action.setdefault(action, list()).append(summary)
     averaged_summaries = list()
     for action, summaries in summaries_by_action.items():
-        new_summary = dict()
-        new_summary['action'] = summaries[0]['action']
-        score_sum = sum(summary['overall'] for summary in summaries)
+        board = summaries[0].board
+        action = summaries[0].action
+        score_sum = sum(summary.score for summary in summaries)
         score_avg = score_sum / len(summaries)
-        new_summary['overall'] = score_avg
-        averaged_summaries.append(new_summary)
-    averaged_summaries.sort(key=lambda s: s['overall'], reverse=True)
+        text = 'Score: {:.1f}'.format(score_avg)
+        avg_summary = base.Summary(board, action, score_avg, text)
+        averaged_summaries.append(avg_summary)
+    averaged_summaries.sort(key=lambda s: s.score, reverse=True)
     return averaged_summaries
 
 
