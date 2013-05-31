@@ -29,9 +29,6 @@ class GUI(object):
         _GenericGameGUI(versus_tab, easy.versus_summaries)
         # done
         notebook.pack()
-
-    def start(self):
-        """Start the tkinter mainloop."""
         self._root.mainloop()
 
 
