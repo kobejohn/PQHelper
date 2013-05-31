@@ -583,11 +583,14 @@ class Tile(object):
 
     def __eq__(self, other):
         """Equality is equality of self and other tile types."""
-        return self._type == other._type
+        try:
+            return self._type == other._type
+        except AttributeError:
+            return False
 
     def __ne__(self, other):
         """Inequality is simply the opposite of equality."""
-        return not (self == other)
+        return not self.__eq__(other)
 
     # Convenience methods
     def is_experience(self):
