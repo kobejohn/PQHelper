@@ -1,7 +1,6 @@
 from collections import deque
 from os import path
-import Queue
-import threading
+import multiprocessing
 import Tkinter as tk
 import ImageTk
 import ttk
@@ -24,7 +23,10 @@ class GUI(object):
         capture_tab = ttk.Frame(notebook)
         notebook.add(capture_tab, text='Capture')
         _GenericGameGUI(capture_tab, easy.capture_solution)
-        # _CaptureGUI(capture_tab)
+        # setup versus
+        versus_tab = ttk.Frame(notebook)
+        notebook.add(versus_tab, text='Versus')
+        _GenericGameGUI(versus_tab, easy.versus_summaries)
         # done
         notebook.pack()
 
@@ -147,9 +149,13 @@ class _GenericGameGUI(object):
     def _analyze(self):
         """(Re)start analysis of the game on screen."""
         self._notify_analysis_in_progress()
-        self._analysis_thread = _ThreadReadyFunction(self._analysis_function,
+        try:
+            self._analysis_process.terminate()  # clear anything existing
+        except AttributeError:  # there wasn't actually a process
+            pass
+        self._analysis_process = _AsyncReadyFunction(self._analysis_function,
                                                      None, None)
-        self._analysis_thread.start()
+        self._analysis_process.start()
         self._base.after(self._POLL_PERIOD_MILLISECONDS,
                          self._scheduled_check_for_summaries)
 
@@ -220,47 +226,57 @@ class _GenericGameGUI(object):
     def _scheduled_check_for_summaries(self):
         """Present the first summary if it has become available."""
         try:
-            self._analysis_thread.join(0.001)
+            self._analysis_process.join(0.001)
         except AttributeError:
-            #there is no thread to work with
+            #there is no process to work with
             self._notify_analysis_failure()
             return
-        if self._analysis_thread.is_alive():
+        if not (self._analysis_process.error_reraise_info is None):
+            # the process died with some error
+            # notify error and leave this code for debugging
+            self._notify_analysis_failure()
+            # info = self._analysis_process.error_reraise_info
+            # raise info[1], None, info[2]
+
+        if self._analysis_process.is_alive():
             #if it's still alive, then simulation is not yet done
             self._base.after(self._POLL_PERIOD_MILLISECONDS,
                              self._scheduled_check_for_summaries)
             return
-        # if it's done, then get the first summary and discard the thread
-        self.summaries = self._analysis_thread.return_value
-        self._analysis_thread = None
+        # if it's done, then get the first summary and clear the process
+        self.summaries = self._analysis_process.return_value
+        self._analysis_process.terminate()
+        self._analysis_process = None
         self._notify_analysis_done()
 
 
-class _ThreadReadyFunction(threading.Thread):
-    """Generic thread-ready function call."""
+class _AsyncReadyFunction(multiprocessing.Process):
+    """Generic async-ready function call."""
     def __init__(self, target,
                  optional_in_queue_name,
                  optional_out_queue_name,
                  *args, **kwargs):
-        self._target = target
+        self._target_func = target
         self.return_value = None
+        self.error_reraise_info = None
         self.in_queue = None  # None by default
-        self.out_queue = None  # None by default
+        self.out_queue = None
         if optional_in_queue_name:
             kwargs[optional_in_queue_name] = self.in_queue
-            self.in_queue = Queue.Queue()
+            self.in_queue = multiprocessing.Queue()
         if optional_out_queue_name:
             kwargs[optional_out_queue_name] = self.out_queue
-            self.out_queue = Queue.Queue()
+            self.out_queue = multiprocessing.Queue()
         self._args = args
         self._kwargs = kwargs
-        threading.Thread.__init__(self)
+        multiprocessing.Process.__init__(self)
 
     def run(self):
         try:
-            self.return_value = self._target(*self._args, **self._kwargs)
-        except Exception as e:
-            self.out_queue.put(e)
+            self.return_value = self._target_func(*self._args, **self._kwargs)
+        except Exception:
+            import sys
+            self.error_reraise_info = sys.exc_info()
 
 
 if __name__ == "__main__":
