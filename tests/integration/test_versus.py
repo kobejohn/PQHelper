@@ -1,7 +1,7 @@
 import unittest
 
-from pqhelper.base import State
-from pqhelper.versus import Advisor, Board, Actor
+from pqhelper.versus import Advisor
+from pqhelper.base import Board, Actor
 
 
 class Test_Advisor(unittest.TestCase):

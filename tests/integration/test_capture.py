@@ -1,7 +1,7 @@
 import unittest
 
-from pqhelper.base import Board, State, Actor
 from pqhelper.capture import Game, capture
+from pqhelper.base import Board, State, Actor
 
 
 class Test_capture(unittest.TestCase):

@@ -1,8 +1,5 @@
 from pqhelper import base
 
-Actor = base.Actor  # for convenient access
-Board = base.Board  # for convenient access
-
 
 class Advisor(object):
     def __init__(self):

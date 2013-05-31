@@ -1,9 +1,6 @@
 from pqhelper import base
 
 
-Board = base.Board
-
-
 def capture(board):
     """Try to solve the board described by board_string.
 

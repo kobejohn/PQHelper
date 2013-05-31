@@ -1,6 +1,7 @@
 import cProfile
 
 from pqhelper import capture
+from pqhelper.base import Board
 
 
 def main():
@@ -8,8 +9,9 @@ def main():
 
 
 def test_solution(board_string):
-    board = capture.Board(board_string)
+    board = Board(board_string)
     print capture.capture(board)
+
 
 skeleton = '''
 ..*..*..

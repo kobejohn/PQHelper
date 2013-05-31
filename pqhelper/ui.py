@@ -8,7 +8,7 @@ import ttk
 import Image as PIL_Image
 import numpy
 
-from pqhelper import easy, data, Board
+from pqhelper import easy, data, base
 _this_path = path.abspath(path.split(__file__)[0])
 
 
@@ -111,7 +111,7 @@ class _GenericGameGUI(object):
 
     def _create_board_image_cv(self, board=None):
         """Return a cv image of the board or empty board if not provided."""
-        board = board or Board()  # empty board by default
+        board = board or base.Board()  # empty board by default
         tile_h, tile_w = self._TILE_SHAPE[0:2]
         board_shape = tile_h * 8, tile_w * 8, 3
         board_image = numpy.zeros(board_shape, dtype=numpy.uint8)
