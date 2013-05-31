@@ -108,6 +108,8 @@ class StateInvestigator(object):
         board = self._board_from_game_image(game_image)
         if board is None:
             return
+        if board.is_empty():
+            return
         return board
 
     def get_versus(self):
@@ -120,6 +122,11 @@ class StateInvestigator(object):
             return None, None, None  # nothing else will work
         # board
         board = self._board_from_game_image(game_image)  # may be None
+        # safety check. there should be no blanks in a versus board
+        if board:
+            for p, tile in board.positions_with_tile():
+                if tile.is_blank():
+                    board = None
         # actors
         player = self._actor_from_game_image('player', game_image)
         opponent = self._actor_from_game_image('opponent', game_image)

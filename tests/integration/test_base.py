@@ -32,6 +32,15 @@ class Test_StateInvestigator(unittest.TestCase):
             board = si.get_capture()
         self.assertIsNone(board)
 
+    def test_get_capture_returns_None_board_if_blank_board(self):
+        # because there shouldn't be one but a misidentified screen can do this
+        si = StateInvestigator()
+        identifier = si._board_tools['tile_id']
+        with patch.object(identifier, 'identify') as m_identify:
+            m_identify.return_value = '.'
+            board, player, opponent = si.get_versus()
+        self.assertIsNone(board)
+
     def test_get_capture_returns_correct_capture_board(self):
         board_string_spec = '........\n'\
                             '........\n'\
@@ -67,6 +76,15 @@ class Test_StateInvestigator(unittest.TestCase):
         identifier = si._board_tools['tile_id']
         with patch.object(identifier, 'identify') as m_identify:
             m_identify.return_value = None
+            board, player, opponent = si.get_versus()
+        self.assertIsNone(board)
+
+    def test_get_versus_returns_None_board_if_any_blank_tiles_found(self):
+        # because there shouldn't be any but a misidentified screen can do this
+        si = StateInvestigator()
+        identifier = si._board_tools['tile_id']
+        with patch.object(identifier, 'identify') as m_identify:
+            m_identify.return_value = '.'
             board, player, opponent = si.get_versus()
         self.assertIsNone(board)
 
