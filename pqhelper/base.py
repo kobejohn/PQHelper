@@ -194,15 +194,19 @@ class StateInvestigator(object):
         t, l, b, r = tools['health_region'].region_in(game_image)
         health_image = game_image[t:b, l:r]
         health_image = numpy.rot90(health_image)  # upright for the TankLevel
-        health = int(round(HEALTH_MAX
-                           * tools['health_tank'].how_full(health_image)))
+        how_full = tools['health_tank'].how_full(health_image)
+        if how_full is None:
+            return None  # failure
+        health = int(round(HEALTH_MAX * how_full))
         args.append((health, HEALTH_MAX))
         # mana
         for color in ('r', 'g', 'b', 'y'):
             t, l, b, r = tools[color + '_region'].region_in(game_image)
             mana_image = game_image[t:b, l:r]
-            mana = int(round(MANA_MAX
-                             * tools[color + '_tank'].how_full(mana_image)))
+            how_full = tools[color + '_tank'].how_full(mana_image)
+            if how_full is None:
+                return None  # failure
+            mana = int(round(MANA_MAX * how_full))
             args.append((mana, MANA_MAX))
         # experience and coins simply start at zero
         x_m = (0, 1000), (0, 1000)
