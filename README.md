@@ -8,14 +8,24 @@ appropriate advice for each type of game (capture, versus, forge, research).
 Status
 ======
 
-It is completely function for capture and versus from the command line.
-Game data for capture and versus are extracted from the screen (doesn't touch
-the application directly).
+It is completely functional for capture and versus with a GUI or from
+the command line. Game data for capture and versus are extracted from
+the screen (doesn't touch the application directly).
 
+- GUI: Working.
 - Capture solution: Solutions are relatively fast.
-- Versus advice: Gives scored choices based on how many turns you simulate.
+- Versus advice: Tries to simulate 2 turns, but will give results of 1 if
+  it times out. Note: "turn" includes any extra "actions" due to web, 4-block
+  matches, etc.
 - Forge, Research: May be implemented.
-- GUI: May be implemented.
+
+
+GUI Usage
+=========
+
+    import pqhelper
+    pqhelper.GUI()
+
 
 
 Command Line Usage per Game Type
