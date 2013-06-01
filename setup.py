@@ -8,11 +8,11 @@ except ImportError:
 
 setup(
     name='PQHelper',
-    version='0.1.2',
+    version='0.1.2.1',
     py_modules=['distribute_setup'],
     packages=find_packages(),
     package_data={'': ['*.png']},
-    requires=['numpy', 'treenode', 'investigators'],
+    install_requires=['numpy', 'treenode', 'investigators'],
     tests_require=['mock', 'numpy', 'treenode', 'investigators'],
     url='http://github.com/kobejohn/PQHelper',
     license='MIT',
