@@ -1,6 +1,8 @@
 from collections import deque
 from os import path
-import multiprocessing
+import multiprocessing as mp
+from Queue import Empty as QEmpty  # unfortunately, not in multiprocessing
+import time
 import Tkinter as tk
 import ImageTk
 import ttk
@@ -10,6 +12,11 @@ import numpy
 
 from pqhelper import easy, data, base
 _this_path = path.abspath(path.split(__file__)[0])
+
+
+def _capture_async(async_results_q=None):
+    result = easy.capture_solution()
+    async_results_q.put(result)
 
 
 class GUI(object):
@@ -22,11 +29,11 @@ class GUI(object):
         # setup capture
         capture_tab = ttk.Frame(notebook)
         notebook.add(capture_tab, text='Capture')
-        _GenericGameGUI(capture_tab, easy.capture_solution)
+        _GenericGameGUI(capture_tab, _capture_async, time_limit=120.0)
         # setup versus
         versus_tab = ttk.Frame(notebook)
         notebook.add(versus_tab, text='Versus')
-        _GenericGameGUI(versus_tab, easy.versus_summaries)
+        _GenericGameGUI(versus_tab, easy.versus_summaries, time_limit=10.0)
         # done
         notebook.pack()
         self._root.mainloop()
@@ -38,7 +45,7 @@ class _GenericGameGUI(object):
     _POLL_PERIOD_MILLISECONDS = 100
 
     # Internal Setup, Configuration, Modification, etc.
-    def __init__(self, base, analysis_function):
+    def __init__(self, base, analysis_function, time_limit=5.0):
         """Setup the common UI elements and behavior for a PQ Game UI.
 
         Arguments:
@@ -47,6 +54,8 @@ class _GenericGameGUI(object):
         self._base = base
         self._analysis_function = analysis_function
         self._tile_images = self._create_tile_images()
+        self._analyze_start_time = None
+        self.time_limit = time_limit
         self.summaries = None
         self._parts = self._setup_parts(self._base)
 
@@ -145,16 +154,67 @@ class _GenericGameGUI(object):
 
     def _analyze(self):
         """(Re)start analysis of the game on screen."""
-        self._notify_analysis_in_progress()
+        self._analyze_start_time = time.time()
+        self._clear_ui()
         try:
             self._analysis_process.terminate()  # clear anything existing
         except AttributeError:  # there wasn't actually a process
             pass
-        self._analysis_process = _AsyncReadyFunction(self._analysis_function,
-                                                     None, None)
+        # self._analysis_process = _AsyncReadyFunction(self._analysis_function,
+        #                                              None, 'async_results_q')
+        out_q = mp.Queue()
+        self._analysis_process = mp.Process(target=self._analysis_function,
+                                            kwargs={'async_results_q': out_q})
+        setattr(self._analysis_process, 'out_q', out_q)
         self._analysis_process.start()
         self._base.after(self._POLL_PERIOD_MILLISECONDS,
                          self._scheduled_check_for_summaries)
+        self._update_notification('Analyzing the on-screen game.')
+
+    def _scheduled_check_for_summaries(self):
+        """Present the results if they have become available or timed out."""
+        if self._analysis_process is None:
+            return
+        # handle time out
+        timed_out = time.time() - self._analyze_start_time > self.time_limit
+        if timed_out:
+            self._handle_results('Analysis timed out but managed\n'
+                                 ' to get lower turn results.',
+                                 'Analysis timed out with no results.')
+            return
+        # handle standard completion
+        try:
+            self._analysis_process.join(0.001)
+        except AssertionError:
+            pass  # if some timing issue with closed process, just continue
+        if not self._analysis_process.is_alive():
+            self._handle_results('Completed analysis.',
+                                 'Unable to find the game on screen.')
+            return
+        #finally, if it's still alive, then come back later
+        self._base.after(self._POLL_PERIOD_MILLISECONDS,
+                         self._scheduled_check_for_summaries)
+
+    def _handle_results(self, success_message, failure_message):
+        last_result = None
+        while True:
+            try:
+                last_result = self._analysis_process.out_q.get(timeout=0.001)
+            except QEmpty:
+                break  # nothing left on the queue
+        self.summaries = last_result
+        if last_result:
+            self._clear_ui()
+            self._update_summary(self.summaries[0])
+            self._update_notification(success_message)
+        else:
+            self._clear_ui()
+            self._update_notification(failure_message)
+        try:
+            self._analysis_process.terminate()
+        except AttributeError:
+            pass  # just no process. ignore it.
+        self._analysis_process = None
 
     def _next(self):
         """Get the next summary and present it."""
@@ -173,26 +233,10 @@ class _GenericGameGUI(object):
         self._update_notification()
         self._update_summary()
 
-    def _notify_analysis_in_progress(self):
-        """Notify the user that analysis is in progress."""
-        self._clear_ui()
-        self._update_notification('Analyzing the game...')
-
-    def _notify_analysis_done(self):
-        """Notify the user about new analysis results."""
-        self._clear_ui()
-        self._update_summary(self.summaries[0])
-        if self.summaries[0] is None:
-            self._update_notification('Unable to find or analyze the game.')
-
-    def _notify_analysis_failure(self):
-        """Notify the user that the analysis failed."""
-        self._clear_ui()
-        self._update_notification('Unable to find or analyze the game.')
-
     def _update_notification(self, message=None):
         """Update the message area with blank or a message."""
-        message = message or ''
+        if message is None:
+            message = ''
         message_label = self._parts['notification label']
         message_label.config(text=message)
         self._base.update()
@@ -220,62 +264,6 @@ class _GenericGameGUI(object):
         # refresh the UI
         self._base.update()
 
-    def _scheduled_check_for_summaries(self):
-        """Present the first summary if it has become available."""
-        try:
-            self._analysis_process.join(0.001)
-        except AttributeError:
-            #there is no process to work with
-            self._notify_analysis_failure()
-            return
-        if not (self._analysis_process.error_reraise_info is None):
-            # the process died with some error
-            # notify error and leave this code for debugging
-            self._notify_analysis_failure()
-            # info = self._analysis_process.error_reraise_info
-            # raise info[1], None, info[2]
-
-        if self._analysis_process.is_alive():
-            #if it's still alive, then simulation is not yet done
-            self._base.after(self._POLL_PERIOD_MILLISECONDS,
-                             self._scheduled_check_for_summaries)
-            return
-        # if it's done, then get the first summary and clear the process
-        self.summaries = self._analysis_process.return_value
-        self._analysis_process.terminate()
-        self._analysis_process = None
-        self._notify_analysis_done()
-
-
-class _AsyncReadyFunction(multiprocessing.Process):
-    """Generic async-ready function call."""
-    def __init__(self, target,
-                 optional_in_queue_name,
-                 optional_out_queue_name,
-                 *args, **kwargs):
-        self._target_func = target
-        self.return_value = None
-        self.error_reraise_info = None
-        self.in_queue = None  # None by default
-        self.out_queue = None
-        if optional_in_queue_name:
-            kwargs[optional_in_queue_name] = self.in_queue
-            self.in_queue = multiprocessing.Queue()
-        if optional_out_queue_name:
-            kwargs[optional_out_queue_name] = self.out_queue
-            self.out_queue = multiprocessing.Queue()
-        self._args = args
-        self._kwargs = kwargs
-        multiprocessing.Process.__init__(self)
-
-    def run(self):
-        try:
-            self.return_value = self._target_func(*self._args, **self._kwargs)
-        except Exception:
-            import sys
-            self.error_reraise_info = sys.exc_info()
-
 
 if __name__ == "__main__":
-    g = GUI()
-    g.start()
+    GUI()
