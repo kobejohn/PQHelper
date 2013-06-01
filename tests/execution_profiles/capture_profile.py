@@ -10,8 +10,19 @@ def main():
 
 def test_solution(board_string):
     board = Board(board_string)
-    print capture.capture(board)
+    for summary in capture.capture(board):
+        print summary.action
 
+
+orc_lord = '''
+........
+........
+.x.ss.x.
+.s.ss.s.
+.gxggxg.
+.sxggxs.
+ssyssy*s
+sysyysys'''
 
 skeleton = '''
 ..*..*..
