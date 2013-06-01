@@ -9,7 +9,7 @@ capture_template = cv2.imread(os.path.join(_base,
 versus_template = cv2.imread(os.path.join(_base,
                                           'versus template 1280x960.png'))
 
-tile_templates = {'.': cv2.imread(os.path.join(_base, '..png')),
+tile_templates = {'.': cv2.imread(os.path.join(_base, '_.png')),
                   'r': cv2.imread(os.path.join(_base, 'r.png')),
                   'g': cv2.imread(os.path.join(_base, 'g.png')),
                   'b': cv2.imread(os.path.join(_base, 'b.png')),
