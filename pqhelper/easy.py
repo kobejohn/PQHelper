@@ -41,10 +41,12 @@ def versus_summaries(turns=2, sims_to_average=2, async_results_q=None):
         for action, summaries in summaries_by_action.items():
             board = summaries[0].board  # any board. they are all the same
             action = summaries[0].action  # any action. they are all the same
-            score_sum = sum(summary.score for summary in summaries)
+            score_sum = sum(s.score for s in summaries)
             score_avg = score_sum / len(summaries)
-            text = 'Score: {:.1f}'.format(score_avg)
-            avg_summary = base.Summary(board, action, score_avg, text)
+            manadrain_sum = sum(s.mana_drain_leaves for s in summaries)
+            leaves_sum = sum(s.total_leaves for s in summaries)
+            avg_summary = base.Summary(board, action, score_avg,
+                                       manadrain_sum, leaves_sum)
             averaged_summaries.append(avg_summary)
         averaged_summaries.sort(key=lambda s: s.score, reverse=True)
         # option to provide the results asynchronouslys

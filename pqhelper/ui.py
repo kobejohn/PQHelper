@@ -247,10 +247,18 @@ class _GenericGameGUI(object):
         # get content for update or use blanks when no summary
         if summary:
             # make a board image with the swap drawn on it
-            board, action, text = summary.board, summary.action, summary.text
-            board_image_cv = self._create_board_image_cv(board)
-            self._draw_swap_cv(board_image_cv, action)
+            # board, action, text = summary.board, summary.action, summary.text
+            board_image_cv = self._create_board_image_cv(summary.board)
+            self._draw_swap_cv(board_image_cv, summary.action)
             board_image_tk = self._convert_cv_to_tk(board_image_cv)
+            text = ''
+            if not summary.score is None:
+                text += 'Score: {:3.1f}'.format(summary.score)
+            if (not summary.mana_drain_leaves is None) and\
+                    (not summary.total_leaves is None):
+                text += '       Mana Drains: {}/{}' \
+                        ''.format(summary.mana_drain_leaves,
+                                  summary.total_leaves)
         else:
             #clear any stored state image and use the blank
             board_image_tk = board_image_label._blank_image

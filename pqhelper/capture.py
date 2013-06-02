@@ -28,7 +28,7 @@ def capture(board):
                 node = node.parent
                 continue
             summary = base.Summary(node.parent.board, node.position_pair,
-                                   None, None)
+                                   None, None, None)
             solution_sequence.append(summary)
             node = node.parent
     return tuple(reversed(solution_sequence))

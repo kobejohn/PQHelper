@@ -31,13 +31,8 @@ class Advisor(object):
             summary = self._summarize_action(action)
             summaries.append(summary)
         # sort to the benefit of player (descending overall score)
-        summaries.sort(key=lambda summary: summary['overall'], reverse=True)
-        # convert to standard summaries:
-        summaries_std = (base.Summary(self._root.board, s['action'],
-                                      s['overall'],
-                                      'Score: {:.1f}'.format(s['overall']))
-                         for s in summaries)
-        return summaries_std
+        summaries.sort(key=lambda summary: summary.score, reverse=True)
+        return summaries
 
     def _summarize_action(self, root_action):
         """Return a dictionary with various information about this root_action.
@@ -116,11 +111,20 @@ class Advisor(object):
 
     def _summarize_result(self, root_action, leaf_eot):
         """Return a dict with useful information that summarizes this action."""
-        summary = dict()
-        summary['overall'] = self._relative_score(root_action, leaf_eot,
-                                                  root_action.parent.player,
-                                                  root_action.parent.opponent)
-        summary['action'] = root_action.position_pair
+        root_board = root_action.parent.board
+        action_detail = root_action.position_pair
+        score = self._relative_score(root_action, leaf_eot,
+                                     root_action.parent.player,
+                                     root_action.parent.opponent)
+        # mana drain info
+        total_leaves = 0
+        mana_drain_leaves = 0
+        for leaf in root_action.leaves:
+            total_leaves += 1
+            if leaf.is_mana_drain:
+                mana_drain_leaves += 1
+        summary = base.Summary(root_board, action_detail, score,
+                               mana_drain_leaves, total_leaves)
         return summary
 
 

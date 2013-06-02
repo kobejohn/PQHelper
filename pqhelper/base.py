@@ -8,7 +8,8 @@ from investigators import visuals as v
 from treenode import TreeNode
 
 
-Summary = namedtuple('Summary', ('board', 'action', 'score', 'text'))
+Summary = namedtuple('Summary', ('board', 'action', 'score',
+                                 'mana_drain_leaves', 'total_leaves'))
 
 
 class StateInvestigator(object):
