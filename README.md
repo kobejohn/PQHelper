@@ -18,7 +18,8 @@ the screen (doesn't touch the application directly).
 - Capture solution: Solutions are relatively fast.
 - Versus advice: Tries to simulate 2 turns, but will give results of 1 if
   it times out. Note: "turn" includes any extra "actions" due to web, 4-block
-  matches, etc.
+  matches, etc. It currently extracts player/opponent health and mana
+  to make scoring more accurate.
 - Forge, Research: May be implemented.
 
 
@@ -28,6 +29,24 @@ GUI Usage
     import pqhelper
     pqhelper.GUI()
 
+
+Installation
+============
+
+Currently, windows only. Might work with wine in Linux.
+
+    pip install pqhelper
+
+If you don't have a compiler on your windows box, it will probably die on you.
+You can install the
+numpy requirement [here](http://sourceforge.net/projects/numpy/files/NumPy/).
+For me, I have to open the executable with 7-zip and easy_install one
+of the installers to get it into a virtualenv. Otherwise I believe
+it goes only to the root python installation.
+
+You will also need [OpenCV]() but that is such a pain that I've included
+a working precompiled windows library (cv2.pyd) with the distribution so you
+don't have to worry about it.
 
 
 Command Line Usage per Game Type

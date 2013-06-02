@@ -8,7 +8,7 @@ except ImportError:
 
 setup(
     name='PQHelper',
-    version='0.1.2.1',
+    version='0.1.2.2',
     py_modules=['distribute_setup'],
     packages=find_packages(),
     package_data={'': ['*.png']},
