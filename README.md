@@ -4,6 +4,8 @@ PQHelper
 PQHelper takes any on-screen game of Puzzle Quest(tm) and then gives the user
 appropriate advice for each type of game (capture, versus, forge, research).
 
+[![Screenshot](https://raw.github.com/kobejohn/PQHelper/screenshot.png)](http://youtu.be/00LsM4rMIcc)
+
 
 Status
 ======
