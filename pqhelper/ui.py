@@ -26,14 +26,14 @@ class GUI(object):
         self._root = tk.Tk()
         self._root.title('PQ Helper')
         notebook = ttk.Notebook(self._root)
-        # setup capture
-        capture_tab = ttk.Frame(notebook)
-        notebook.add(capture_tab, text='Capture')
-        _GenericGameGUI(capture_tab, _capture_async, time_limit=120.0)
         # setup versus
         versus_tab = ttk.Frame(notebook)
         notebook.add(versus_tab, text='Versus')
         _GenericGameGUI(versus_tab, easy.versus_summaries, time_limit=10.0)
+        # setup capture
+        capture_tab = ttk.Frame(notebook)
+        notebook.add(capture_tab, text='Capture')
+        _GenericGameGUI(capture_tab, _capture_async, time_limit=120.0)
         # done
         notebook.pack()
         self._root.mainloop()
