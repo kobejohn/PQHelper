@@ -32,7 +32,7 @@ class Test_Advisor(unittest.TestCase):
         original_root = advisor._root = 'fake root'
         # confirm reset changes the root and it's not None
         advisor.reset(Board(),
-                      generic_actor('player'), generic_actor('opponent'))
+                      generic_actor('player'), generic_actor('opponent'), 0)
         self.assertIsNot(advisor._root, original_root,
                          'Unexpectedly found the same root after resetting:'
                          '\n{}'.format(original_root))
@@ -45,7 +45,7 @@ class Test_Advisor(unittest.TestCase):
         # set a fake original value
         advisor._current_completed_turn = 2
         advisor.reset(Board(),
-                      generic_actor('player'), generic_actor('opponent'))
+                      generic_actor('player'), generic_actor('opponent'), 0)
         # confirm reset of the current turn indicator
         completed_turn = advisor.current_completed_turn
         self.assertEqual(completed_turn, 0,
@@ -53,9 +53,18 @@ class Test_Advisor(unittest.TestCase):
                          'current completed turn value after resetting'
                          'the advisor'.format(completed_turn))
 
+    def test_reset_sets_root_state_actions_remaining_to_1_plus_extra(self):
+        advisor = Advisor()
+        extra_actions = 2
+        advisor.reset(Board(),
+                      generic_actor('player'), generic_actor('opponent'),
+                      extra_actions)
+        actions_remaming_spec = 1 + extra_actions
+        self.assertEqual(advisor._root.actions_remaining, actions_remaming_spec)
+
     # Run the versus simulation one turn at a time
     def test_simulate_next_turn_produces_correct_tree_internally(self):
-        advisor = generic_advisor(self.board_string_3_valid_swaps)
+        advisor = generic_preset_advisor(self.board_string_3_valid_swaps)
         # turn 1: 3 leaves
         advisor.simulate_next_turn()
         leaf_count = len(list(advisor._root.leaves))
@@ -74,7 +83,7 @@ class Test_Advisor(unittest.TestCase):
                                  'r.....*.\n' \
                                  '3.....s.\n' \
                                  'xr....xs'
-        advisor = generic_advisor(board_string_two_moves)
+        advisor = generic_preset_advisor(board_string_two_moves)
         # turn 0
         self.assertEqual(advisor.current_completed_turn, 0)
         # turn 1, 2: increments with simulation
@@ -96,7 +105,7 @@ class Test_Advisor(unittest.TestCase):
 
     # Summaries: action details
     def test_current_summaries_generates_correct_swap_choices(self):
-        advisor = generic_advisor(self.board_string_3_valid_swaps)
+        advisor = generic_preset_advisor(self.board_string_3_valid_swaps)
         # sim and confirm chocies for turn 1
         advisor.simulate_next_turn()
         summaries_turn_1 = advisor.sorted_current_summaries()
@@ -110,7 +119,7 @@ class Test_Advisor(unittest.TestCase):
                               ''.format(swaps_turn_1, swaps_spec))
 
     def test_current_summaries_generates_same_choices_each_turn(self):
-        advisor = generic_advisor(self.board_string_3_valid_swaps)
+        advisor = generic_preset_advisor(self.board_string_3_valid_swaps)
         # sim and store choices for turn 1
         advisor.simulate_next_turn()
         summaries_turn_1 = advisor.sorted_current_summaries()
@@ -144,9 +153,9 @@ class Test_Advisor(unittest.TestCase):
                                           r=flexible_value,
                                           g=flexible_value,
                                           health=flexible_value)
-        advisor = generic_advisor(board_string=surprise_board_string,
-                                  player=flexible_player,
-                                  opponent=flexible_opponent)
+        advisor = generic_preset_advisor(board_string=surprise_board_string,
+                                         player=flexible_player,
+                                         opponent=flexible_opponent)
         left_swap = ((7, 0), (7, 1))
         right_swap = ((7, 6), (7, 7))
         # Simulate 1 turn and confirm relative scoring
@@ -180,7 +189,7 @@ class Test_Advisor(unittest.TestCase):
                                            ordered_swaps_turn_2))
 
     def test_current_summaries_generates_different_scoring_each_turn(self):
-        advisor = generic_advisor(self.board_string_3_valid_swaps)
+        advisor = generic_preset_advisor(self.board_string_3_valid_swaps)
         # sim and store scoring for turn 1
         advisor.simulate_next_turn()
         summaries_turn_1 = advisor.sorted_current_summaries()
@@ -202,12 +211,12 @@ class Test_Advisor(unittest.TestCase):
                       'but got the same:\n{}'.format(overalls_turn_1))
 
 
-def generic_advisor(board_string, player=None, opponent=None,
-                    random_fill=False):
+def generic_preset_advisor(board_string, player=None, opponent=None,
+                           random_fill=False):
     advisor = Advisor()
     player = player or generic_actor('player')
     opponent = opponent or generic_actor('opponent')
-    advisor.reset(Board(board_string), player, opponent)
+    advisor.reset(Board(board_string), player, opponent, 0)
     # patch the game not to do random fills
     advisor._game.random_fill = random_fill
     return advisor

@@ -17,7 +17,8 @@ def versus_summaries(turns=2, sims_to_average=2, async_results_q=None):
         the summaries of each turn will be placed. this is an asynchronous
         alternative to waiting for the final return value
     """
-    board, player, opponent = _state_investigator.get_versus()
+    board, player, opponent, extra_actions = _state_investigator.get_versus()
+    if extra_actions: extra_actions = 1  # limit value for realistic time
     if board is None:
         return tuple()
     averaged_summaries = list()  # default return value is empty
@@ -25,7 +26,7 @@ def versus_summaries(turns=2, sims_to_average=2, async_results_q=None):
     advisors = list()
     for i in range(sims_to_average):
         advisor = versus.Advisor()
-        advisor.reset(board, player, opponent)
+        advisor.reset(board, player, opponent, extra_actions)
         advisors.append(advisor)
     # provide async sim results per turn; final results as return value
     for turn in range(turns):

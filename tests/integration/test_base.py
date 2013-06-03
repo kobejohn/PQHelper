@@ -38,7 +38,7 @@ class Test_StateInvestigator(unittest.TestCase):
         identifier = si._board_tools['tile_id']
         with patch.object(identifier, 'identify') as m_identify:
             m_identify.return_value = '.'
-            board, player, opponent = si.get_versus()
+            board, player, opponent, extra_actions = si.get_versus()
         self.assertIsNone(board)
 
     def test_get_capture_returns_correct_capture_board(self):
@@ -61,22 +61,23 @@ class Test_StateInvestigator(unittest.TestCase):
         self.assertEqual(str(board), board_string_spec)
 
     # Versus
-    def test_get_versus_returns_None_if_game_can_not_be_found_on_screen(self):
+    def test_get_versus_returns_4xNone_if_game_can_not_be_found_on_screen(self):
         si = StateInvestigator()
         finder = si._game_finders['versus']
         with patch.object(finder, 'locate_in') as m_locate_in:
             m_locate_in.return_value = None
-            board, player, opponent = si.get_versus()
+            board, player, opponent, extra_actions = si.get_versus()
         self.assertIsNone(board)
         self.assertIsNone(player)
         self.assertIsNone(opponent)
+        self.assertIsNone(extra_actions)
 
     def test_get_versus_returns_None_board_if_tile_can_not_be_identified(self):
         si = StateInvestigator()
         identifier = si._board_tools['tile_id']
         with patch.object(identifier, 'identify') as m_identify:
             m_identify.return_value = None
-            board, player, opponent = si.get_versus()
+            board, player, opponent, extra_actions = si.get_versus()
         self.assertIsNone(board)
 
     def test_get_versus_returns_None_board_if_any_blank_tiles_found(self):
@@ -85,10 +86,10 @@ class Test_StateInvestigator(unittest.TestCase):
         identifier = si._board_tools['tile_id']
         with patch.object(identifier, 'identify') as m_identify:
             m_identify.return_value = '.'
-            board, player, opponent = si.get_versus()
+            board, player, opponent, extra_actions = si.get_versus()
         self.assertIsNone(board)
 
-    def test_get_versus_returns_correct_board_player_and_opponent(self):
+    def test_get_versus_returns_correct_parts(self):
         si = StateInvestigator()
         here = path.abspath(path.split(__file__)[0])
         screen_path = path.join(here, 'versus.png')
@@ -97,7 +98,7 @@ class Test_StateInvestigator(unittest.TestCase):
         # get the versus parts
         with patch.object(si, '_screen_shot') as m_screen_shot:
             m_screen_shot.return_value = screen
-            board, player, opponent = si.get_versus()
+            board, player, opponent, extra_actions = si.get_versus()
         # confirm that the board is correct
         board_string_spec = 'smrbmsgs\n'\
                             'bbyxxysm\n'\
@@ -148,24 +149,9 @@ class Test_StateInvestigator(unittest.TestCase):
         self.assertEqual(opponent.r_max, mana_max_spec)
         self.assertEqual(opponent.y_max, mana_max_spec)
         self.assertEqual(opponent.b_max, mana_max_spec)
-
-    def test_get_versus_returns_Nonex3_when_game_search_fails(self):
-        si = StateInvestigator()
-        finder = si._game_finders['versus']
-        with patch.object(finder, 'locate_in') as m_locate_in:
-            m_locate_in.return_value = None
-            board, player, opponent = si.get_versus()
-        self.assertIsNone(board)
-        self.assertIsNone(player)
-        self.assertIsNone(opponent)
-
-    def test_get_versus_returns_board_None_when_board_extract_fails(self):
-        si = StateInvestigator()
-        identifier = si._board_tools['tile_id']
-        with patch.object(identifier, 'identify') as m_identify:
-            m_identify.return_value = None
-            board, _, _ = si.get_versus()
-        self.assertIsNone(board)
+        # confirm that extra_actions is correct
+        extra_actions_spec = 3
+        self.assertEqual(extra_actions, extra_actions_spec)
 
     def test_generic_versus_actors_produces_average_player_and_opponent(self):
         # this is a stopgap until actor investigation is implemented

@@ -18,7 +18,9 @@ print 'Analyzing the versus game:\n{}'.format(board_string_8_choices)
 from pqhelper.base import Board
 board = Board(board_string_8_choices)
 player, opponent = pqhelper.easy._state_investigator.generic_versus_actors()
-pqhelper.easy._state_investigator.get_versus = lambda: (board, player, opponent)
+extra_actions = 0
+pqhelper.easy._state_investigator.get_versus = lambda: (board, player, opponent,
+                                                        extra_actions)
 
 # Simulate two turns (with the versus module, you can simulate turn by turn)
 # Also runs the same simulation twice to smooth out the effects of random drops
@@ -26,5 +28,5 @@ pqhelper.easy._state_investigator.get_versus = lambda: (board, player, opponent)
 summaries = pqhelper.versus_summaries(turns=2, sims_to_average=2)
 for summary in summaries:
     print '--------------------'
-    print summary.text
+    print summary.score
     print summary.action

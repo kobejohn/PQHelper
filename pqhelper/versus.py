@@ -11,8 +11,10 @@ class Advisor(object):
     def current_completed_turn(self):
         return self._current_completed_turn
 
-    def reset(self, board, player, opponent):
-        self._root = base.State(board, player, opponent, 1, 1)
+    def reset(self, board, player, opponent, extra_actions):
+        total_actions = 1 + extra_actions
+        self._root = base.State(board, player, opponent,
+                                1, total_actions)
         self._current_completed_turn = 0
 
     def simulate_next_turn(self):

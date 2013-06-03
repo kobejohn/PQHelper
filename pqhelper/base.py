@@ -30,28 +30,30 @@ class StateInvestigator(object):
 
     # proportions of various parts determined by mesauring pixels on images
     # all proportions are in top, left, bottom, right order
-    _BOUNDS = {'board': (float(162) / 960, float(270) / 1280,
-                         float(900) / 960, float(1010) / 1280),
-               'p_health': (float(150) / 960, float(17) / 1280,
-                            float(174) / 960, float(234) / 1280),
-               'p_g': (float(210) / 960, float(126) / 1280,
-                       float(284) / 960, float(150) / 1280),
-               'p_r': (float(210) / 960, float(150) / 1280,
-                       float(284) / 960, float(176) / 1280),
-               'p_y': (float(210) / 960, float(176) / 1280,
-                       float(284) / 960, float(201) / 1280),
-               'p_b': (float(210) / 960, float(201) / 1280,
-                       float(284) / 960, float(228) / 1280),
-               'o_health': (float(150) / 960, float(1046) / 1280,
-                            float(174) / 960, float(1264) / 1280),
-               'o_g': (float(210) / 960, float(1155) / 1280,
-                       float(284) / 960, float(1179) / 1280),
-               'o_r': (float(210) / 960, float(1179) / 1280,
-                       float(284) / 960, float(1206) / 1280),
-               'o_y': (float(210) / 960, float(1206) / 1280,
-                       float(284) / 960, float(1232) / 1280),
-               'o_b': (float(210) / 960, float(1232) / 1280,
-                       float(284) / 960, float(1258) / 1280)}
+    _BOUNDS = {'board': (162.0 / 960, 270.0 / 1280,
+                         900.0 / 960, 1010.0 / 1280),
+               'extra_actions': (120.0 / 960, 1100.0 / 1280,
+                                 160.0 / 960, 1220.0 / 1280),
+               'p_health': (150.0 / 960, 17.0 / 1280,
+                            174.0 / 960, 234.0 / 1280),
+               'p_g': (210.0 / 960, 126.0 / 1280,
+                       284.0 / 960, 150.0 / 1280),
+               'p_r': (210.0 / 960, 150.0 / 1280,
+                       284.0 / 960, 176.0 / 1280),
+               'p_y': (210.0 / 960, 176.0 / 1280,
+                       284.0 / 960, 201.0 / 1280),
+               'p_b': (210.0 / 960, 201.0 / 1280,
+                       284.0 / 960, 228.0 / 1280),
+               'o_health': (150.0 / 960, 1046.0 / 1280,
+                            174.0 / 960, 1264.0 / 1280),
+               'o_g': (210.0 / 960, 1155.0 / 1280,
+                       284.0 / 960, 1179.0 / 1280),
+               'o_r': (210.0 / 960, 1179.0 / 1280,
+                       284.0 / 960, 1206.0 / 1280),
+               'o_y': (210.0 / 960, 1206.0 / 1280,
+                       284.0 / 960, 1232.0 / 1280),
+               'o_b': (210.0 / 960, 1232.0 / 1280,
+                       284.0 / 960, 1258.0 / 1280)}
 
     # fill, empty, ignore BGR for the various parts detected with TankLevel
     _TANK_COLORS = {'health': ((5, 5, 200), (40, 40, 50), (20, 20, 20)),
@@ -71,11 +73,14 @@ class StateInvestigator(object):
                                                 immediate_threshold=0.1,
                                                 acceptable_threshold=0.4)}
 
-    _board_tools = {'region': v.ProportionalRegion(_BOUNDS['board']),
+    _board_tools = {'board_region': v.ProportionalRegion(_BOUNDS['board']),
                     'grid': v.Grid((8, 8), (0, 0, 0, 0)),
                     'tile_id': v.ImageIdentifier(pq_data.tile_templates,
                                                  acceptable_threshold=0.2,
                                                  immediate_threshold=0.05)}
+
+    _bonus_tools = {'extra_action_region': v.ProportionalRegion(
+        _BOUNDS['extra_actions'])}
 
     _player_tools = {'health_region': v.ProportionalRegion(_BOUNDS['p_health']),
                      'g_region': v.ProportionalRegion(_BOUNDS['p_g']),
@@ -114,13 +119,13 @@ class StateInvestigator(object):
         return board
 
     def get_versus(self):
-        """Return the versus board, player, and opponent.
+        """Return the versus board, player, opponent and extra actions.
         Return None for any parts that can't be found.
         """
         # game
         game_image = self._game_image_from_screen('versus')
         if game_image is None:
-            return None, None, None  # nothing else will work
+            return None, None, None, None  # nothing else will work
         # board
         board = self._board_from_game_image(game_image)  # may be None
         # safety check. there should be no blanks in a versus board
@@ -131,7 +136,9 @@ class StateInvestigator(object):
         # actors
         player = self._actor_from_game_image('player', game_image)
         opponent = self._actor_from_game_image('opponent', game_image)
-        return board, player, opponent
+        # extra actions
+        extra_actions = self._count_extra_actions(game_image)
+        return board, player, opponent, extra_actions
 
     def _screen_shot(self):
         return v.screen_shot()
@@ -155,7 +162,7 @@ class StateInvestigator(object):
         Return None if any tiles are not identified.
         """
         # board image
-        board_rect = self._board_tools['region'].region_in(game_image)
+        board_rect = self._board_tools['board_region'].region_in(game_image)
         t, l, b, r = board_rect
         board_image = game_image[t:b, l:r]
         # board grid and tiles --> fill in a Board object
@@ -217,6 +224,26 @@ class StateInvestigator(object):
         args.extend(h_c)
         # build the actor and return it
         return Actor(*args)
+
+    def _count_extra_actions(self, game_image):
+        """Count the number of extra actions for player in this turn."""
+        proportional = self._bonus_tools['extra_action_region']
+        # Use ProportionalRegion to isolate the extra actions area
+        t, l, b, r = proportional.region_in(game_image)
+        token_region = game_image[t:b, l:r]
+        # Use TemplateFinder (multiple) to check for extra actions
+        game_h, game_w = game_image.shape[0:2]
+        token_h = int(round(game_h * 27.0 / 960))
+        token_w = int(round(game_w * 22.0 / 1280))
+        sizes = (token_h, token_w),
+        # sizes change every time so just remake it.
+        # thresholds are tight since need to count conservatively
+        finder = v.TemplateFinder(pq_data.extra_action_template,
+                                  sizes=sizes,
+                                  acceptable_threshold=0.1,
+                                  immediate_threshold=0.1)
+        found_tokens = finder.locate_multiple_in(token_region)
+        return len(found_tokens)
 
     def generic_versus_actors(self):
         health = 50, 100
