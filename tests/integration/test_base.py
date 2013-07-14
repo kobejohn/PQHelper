@@ -262,7 +262,7 @@ class Test_Game(unittest.TestCase):
         root = generic_state(board=Board(self.board_string_two_paths))
         # try to complete generation by converting to list
         ends_of_turn = list(game.ends_of_one_state(root))
-        leaves = list(root.leaves)
+        leaves = list(root.leaves())
         # confirm leaves === generated ends of turn
         self.assertItemsEqual(ends_of_turn, leaves)
         # confirm all supposed ends of turn are actually EOT
@@ -386,7 +386,7 @@ class Test_Game(unittest.TestCase):
         root = generic_state(board=Board(self.board_string_two_paths))
         list(game.ends_of_one_state(root=root))
         # confirm that the root was filtered and tagged
-        leaf = list(root.leaves)[0]
+        leaf = list(root.leaves())[0]
         self.assertIsInstance(leaf, Filtered)
 
     @patch('pqhelper.base.Game._disallow_state',
@@ -406,7 +406,7 @@ class Test_Game(unittest.TestCase):
         # run the simulation
         list(game.ends_of_one_state(root=root))
         # confirm that the leaf is filtered, not EOT
-        leaf = list(root.leaves)[0]
+        leaf = list(root.leaves())[0]
         self.assertIsInstance(leaf, Filtered)
 
     def test_ends_of_one_state_simulates_bonus_action_for_match_of_4(self):
@@ -590,7 +590,7 @@ class Test_Game(unittest.TestCase):
                              '........\n'\
                              '........\n'\
                              '.x....x.'
-        for eot in root.leaves:
+        for eot in root.leaves():
             self.assertEqual(str(eot.parent.board), final_board_string,
                              'Unexpectedly got this end of turn board:\n{}'
                              '\nbut was expecting this one:\n{}'

@@ -93,7 +93,8 @@ class Game(base.Game):
 
 class _DuplicateTree(base.TreeNode):
     def __init__(self, tile=None):
-        super(_DuplicateTree, self).__init__(tile=tile)
+        super(_DuplicateTree, self).__init__()
+        self.tile = tile
 
     def find_or_graft(self, board):
         """Build a tree with each level corresponding to a fixed position on

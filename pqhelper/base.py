@@ -5,7 +5,7 @@ import numpy
 
 import pqhelper.data as pq_data
 from investigators import visuals as v
-from treenode import TreeNode
+from stemnode import TreeNode
 
 
 Summary = namedtuple('Summary', ('board', 'action', 'score',
@@ -338,7 +338,7 @@ class Game(object):
             raise ValueError('Unexpectedly received a node with a parent for'
                              ' root:\n{}'.format(root))
         # build the list of eots (or just the root if first turn) to be run
-        leaves = list(root.leaves)
+        leaves = list(root.leaves())
         kw_starts = list()
         if leaves[0] is root:
             # build ends of state kwargs as only the root

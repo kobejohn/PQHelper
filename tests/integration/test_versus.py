@@ -67,11 +67,11 @@ class Test_Advisor(unittest.TestCase):
         advisor = generic_preset_advisor(self.board_string_3_valid_swaps)
         # turn 1: 3 leaves
         advisor.simulate_next_turn()
-        leaf_count = len(list(advisor._root.leaves))
+        leaf_count = len(list(advisor._root.leaves()))
         self.assertEqual(leaf_count, 3)
         # turn 2: 6 leaves
         advisor.simulate_next_turn()
-        leaf_count = len(list(advisor._root.leaves))
+        leaf_count = len(list(advisor._root.leaves()))
         self.assertEqual(leaf_count, 6)
 
     def test_simulate_next_turn_increments_current_turn_if_simulated(self):

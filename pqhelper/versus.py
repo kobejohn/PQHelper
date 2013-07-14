@@ -47,7 +47,7 @@ class Advisor(object):
             return isinstance(node, base.EOT) or (node is root_action)
         # store per-turn results from the bottom up.
         realistic_ends_by_node = dict()
-        for node in root_action.post_order_nodes:  # bottom up to this action
+        for node in root_action.post_order_nodes():  # bottom up to this action
             # only work with EOT or the root action
             if not is_target_node(node):
                 continue
@@ -121,7 +121,7 @@ class Advisor(object):
         # mana drain info
         total_leaves = 0
         mana_drain_leaves = 0
-        for leaf in root_action.leaves:
+        for leaf in root_action.leaves():
             total_leaves += 1
             if leaf.is_mana_drain:
                 mana_drain_leaves += 1
